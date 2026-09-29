@@ -148,7 +148,6 @@ function records() {
   const ids = new Set(result.map(record => record.id));
   if (ids.size !== result.length) throw new Error('Duplicate record IDs.');
   const arcIds = new Set(result.filter(record => record.kind === 'arc').map(record => record.id));
-  const sequences = new Set();
   for (const record of result.filter(record => record.kind === 'workstream')) {
     if (!arcIds.has(record.arc)) throw new Error(`Unknown parent arc: ${record.id}`);
     if (/^WS-.+-\d+--/.test(record.id) && record.sequence === undefined) throw new Error(`Missing workstream sequence: ${record.id}`);
@@ -156,9 +155,6 @@ function records() {
       const number = String(record.sequence).padStart(2, '0');
       if (!Number.isSafeInteger(record.sequence) || record.sequence < 1
           || !record.id.startsWith(`WS-${slug(record.owner.name)}-${number}--`)) throw new Error(`Invalid workstream sequence: ${record.id}`);
-      const key = `${record.owner.id}:${record.sequence}`;
-      if (sequences.has(key)) throw new Error(`Duplicate workstream sequence: ${record.id}`);
-      sequences.add(key);
     }
   }
   return result;

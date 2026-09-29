@@ -283,7 +283,7 @@ test('short summaries are capped at five words and filename collisions never ove
   assert.equal(readFileSync(path, 'utf8'), before);
 });
 
-test('validation rejects a missing arc contract and duplicate workstream numbers', () => {
+test('validation rejects a missing arc contract but permits repeated numbers with distinct IDs', () => {
   const root = fixture();
   ok(run(root, 'init'));
   const arc = ok(run(root, 'new', 'arc', 'Search tools'));
@@ -296,7 +296,30 @@ test('validation rejects a missing arc contract and duplicate workstream numbers
   writeFileSync(path, original);
   const duplicate = ws.replace('--search-filters', '--duplicate-number');
   writeFileSync(join(folder, `${duplicate}.md`), original.replace(`"id": "${ws}"`, `"id": "${duplicate}"`));
-  assert.notEqual(run(root, 'check').status, 0);
+  assert.match(ok(run(root, 'check')), /Valid: 3 records/);
+});
+
+test('parallel arc branches can merge distinct workstreams with the same owner number', () => {
+  const root = fixture();
+  ok(run(root, 'init'));
+  execFileSync('git', ['add', '-A'], { cwd: root });
+  execFileSync('git', ['commit', '-qm', 'Fixture harness'], { cwd: root });
+
+  const firstArc = ok(run(root, 'new', 'arc', 'Profile settings'));
+  assert.equal(ok(run(root, 'new', 'workstream', firstArc, 'Profile form')), 'WS-alex-developer-01--profile-form');
+  execFileSync('git', ['add', '-A'], { cwd: root });
+  execFileSync('git', ['commit', '-qm', 'Fixture first arc'], { cwd: root });
+  execFileSync('git', ['switch', '-q', 'main'], { cwd: root });
+
+  const secondArc = ok(run(root, 'new', 'arc', 'Search tools'));
+  assert.equal(ok(run(root, 'new', 'workstream', secondArc, 'Search filters')), 'WS-alex-developer-01--search-filters');
+  execFileSync('git', ['add', '-A'], { cwd: root });
+  execFileSync('git', ['commit', '-qm', 'Fixture second arc'], { cwd: root });
+  execFileSync('git', ['switch', '-q', 'main'], { cwd: root });
+
+  execFileSync('git', ['merge', '-q', '--no-ff', '-m', 'Fixture first integration', `arc/${firstArc}`], { cwd: root });
+  execFileSync('git', ['merge', '-q', '--no-ff', '-m', 'Fixture second integration', `arc/${secondArc}`], { cwd: root });
+  assert.match(ok(run(root, 'check')), /Valid: 4 records/);
 });
 
 test('arc branch precedes records and workstream creation is restricted to its parent arc', () => {

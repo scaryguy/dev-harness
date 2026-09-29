@@ -166,8 +166,9 @@ Each Markdown record's JSON frontmatter owns its identity, gate/status, revision
 and next action. Update progress automatically; update `updated` and append dated history.
 Arc filenames: `YYYY-M-D-name--summary.md`. Workstream filenames:
 `WS-name-01--summary.md`. Use short descriptive summaries of up to five words.
-Create workstreams in plan order. Numbers increase per user across arcs, starting at 01;
-never renumber existing workstreams. Use the CLI to allocate numbers.
+Create workstreams in plan order. Use the CLI to allocate the next per-user number
+from the current checkout, starting at 01. Parallel arc branches may allocate the
+same number; the full WS ID identifies the record. Never renumber existing workstreams.
 Every workstream must set `arc` to its parent's exact ID and link its arc file in the contract.
 Create the parent arc first; validation rejects missing or unknown parents.
 Increment revision and re-review when scope or implementation changes invalidate approval.
