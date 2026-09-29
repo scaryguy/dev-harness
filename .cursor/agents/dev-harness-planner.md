@@ -1,1 +1,1 @@
-../../dev-harness/adapters/cursor/agents/dev-harness-planner.md
+../../dev-harness/.harness/adapters/cursor/agents/dev-harness-planner.md

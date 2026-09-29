@@ -10,7 +10,7 @@ research → implementation → review → user confirmation → merged.
 Requires Node.js 20+. Run inside your project's Git repository:
 
 ```sh
-npx @scaryguy/dev-harness init
+npx github:scaryguy/dev-harness init
 ```
 
 Select **Grok 4.7 · High** in Cursor's model picker. Start a new chat:
@@ -22,9 +22,12 @@ Say “resume my work” to continue in another session.
 
 ## Files and settings
 
-Everything lives in `dev-harness/`: configuration, skills, scripts, arcs,
-workstreams, and knowledge. `AGENTS.md` and Cursor discovery links are entry points.
-Edit `dev-harness/config.json` or ask the agent to configure it.
+Only `arcs/` and `workstreams/` are visible inside `dev-harness/`.
+Internals and repository knowledge live in `dev-harness/.harness/`.
+Worktree checkouts stay outside the repository, in `../<repo-name>-worktrees/<ws-id>/`.
+`AGENTS.md` and Cursor discovery links are entry points.
+Edit `dev-harness/.harness/config.json` or ask the agent to configure it.
+Rerun init to refresh built-in instructions; configuration, knowledge, and records are preserved.
 
 ## Remove
 
@@ -33,5 +36,6 @@ under `.cursor/skills/` and `.cursor/agents/`.
 
 Initial scaffold: Cursor setup, record creation, status, and validation work.
 Gate approvals are agent-managed; automatic enforcement and other platforms come later.
-The npm package is not published yet. Contributors can test it with `npm pack`
+After npm publication, use `npx @scaryguy/dev-harness init`.
+Contributors can test locally with `npm pack`
 and run `npx --package=/path/to/package.tgz dev-harness init` in a test project.

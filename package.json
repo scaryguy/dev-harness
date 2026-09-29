@@ -4,20 +4,20 @@
   "description": "A shared workflow for humans and coding agents.",
   "type": "module",
   "bin": {
-    "dev-harness": "dev-harness/cli.mjs"
+    "dev-harness": "dev-harness/.harness/cli.mjs"
   },
   "files": [
-    "dev-harness/cli.mjs",
-    "dev-harness/config.json",
-    "dev-harness/templates/",
-    "dev-harness/skills/",
-    "dev-harness/adapters/"
+    "dev-harness/.harness/cli.mjs",
+    "dev-harness/.harness/config.json",
+    "dev-harness/.harness/templates/",
+    "dev-harness/.harness/skills/",
+    "dev-harness/.harness/adapters/"
   ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test dev-harness/cli.test.mjs"
+    "test": "node --test dev-harness/.harness/cli.test.mjs"
   },
   "repository": {
     "type": "git",
