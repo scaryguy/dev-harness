@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, lstatSync, readlinkSync, readdirSync, renameSync, rmdirSync, symlinkSync, unlinkSync, cpSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, lstatSync, readlinkSync, readdirSync, realpathSync, renameSync, rmSync, rmdirSync, symlinkSync, unlinkSync, cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const cli = join(dirname(fileURLToPath(import.meta.url)), 'cli.mjs');
@@ -405,4 +405,228 @@ test('arc branch precedes records and workstream creation is restricted to its p
   execFileSync('git', ['switch', '-q', `arc/${arc}`], { cwd: root });
   const ws = ok(run(root, 'new', 'workstream', arc, 'Example slice'));
   assert.ok(existsSync(join(root, 'dev-harness', 'workstreams', `${ws}.md`)));
+});
+
+function sourceFixture(changeBaseline = () => {}) {
+  const root = fixture();
+  ok(run(root, 'init'));
+  cpSync(join(dirname(dirname(dirname(cli))), 'package.json'), join(root, 'package.json'));
+  const localCli = join(root, 'dev-harness', '.harness', 'cli.mjs');
+  const skill = join(root, 'dev-harness', '.harness', 'skills', 'dev-harness', 'SKILL.md');
+  const baselineCli = readFileSync(localCli, 'utf8').replace('function status() {',
+    'function status() { console.log("BASELINE STATUS"); console.log("RUNTIME " + source); console.log("CWD " + root);')
+    .replace('console.log(`Valid:', 'console.log("BASELINE CHECK"); console.log(`Valid:');
+  const baselineSkill = `${readFileSync(skill, 'utf8')}\nBASELINE SKILL\n`;
+  writeFileSync(localCli, baselineCli);
+  writeFileSync(skill, baselineSkill);
+  changeBaseline(root);
+  execFileSync('git', ['add', '-A'], { cwd: root });
+  execFileSync('git', ['commit', '-qm', 'Fixture source baseline'], { cwd: root });
+  const base = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+  // A missing or invalid historical input must not change source detection at HEAD.
+  writeFileSync(localCli, baselineCli);
+  if (existsSync(skill) && !lstatSync(skill).isFile()) rmSync(skill, { recursive: true });
+  writeFileSync(skill, baselineSkill);
+  execFileSync('git', ['add', '-A'], { cwd: root });
+  execFileSync('git', ['commit', '--allow-empty', '-qm', 'Fixture current source'], { cwd: root });
+  ok(spawnSync(process.execPath, [localCli, 'init'], { cwd: root, encoding: 'utf8' }));
+  execFileSync('git', ['add', '-A'], { cwd: root });
+  execFileSync('git', ['commit', '--allow-empty', '-qm', 'Fixture source bootstrap'], { cwd: root });
+  const arc = ok(run(root, 'new', 'arc', 'Pinned governance'));
+  const arcPath = join(root, 'dev-harness', 'arcs', `${arc}.md`);
+  setMetadata(arcPath, { baseSha: base });
+  execFileSync('git', ['add', '-A'], { cwd: root });
+  execFileSync('git', ['commit', '-qm', 'Fixture source arc'], { cwd: root });
+  return { root, localCli, skill, arc, arcPath, base, baselineSkill };
+}
+
+function setMetadata(path, values) {
+  const body = readFileSync(path, 'utf8');
+  writeFileSync(path, body.replace(/^---\n[\s\S]*?\n---/, `---\n${JSON.stringify({ ...metadata(path), ...values }, null, 2)}\n---`));
+}
+
+function pinnedRun(source, ...args) {
+  return spawnSync(process.execPath, [source.localCli, 'pinned', ...args], { cwd: source.root, encoding: 'utf8' });
+}
+
+test('source ARC keeps committed skill and CLI through candidate WS merge and final approval', () => {
+  const source = sourceFixture();
+  assert.equal(ok(pinnedRun(source, 'skill')), source.baselineSkill.trim());
+  const before = readFileSync(join(source.root, 'AGENTS.md'), 'utf8');
+  assert.match(before, /git show BASE_SHA:dev-harness\/\.harness\/skills\/dev-harness\/SKILL.md/);
+  assert.match(before, /before following live instructions/);
+  assert.match(before, /Never invoke the live candidate CLI's pinned dispatcher/);
+  execFileSync('git', ['switch', '-qc', 'ws/fixture-candidate'], { cwd: source.root });
+  writeFileSync(source.localCli, readFileSync(source.localCli, 'utf8').replaceAll('BASELINE STATUS', 'CANDIDATE STATUS').replaceAll('BASELINE CHECK', 'CANDIDATE CHECK'));
+  writeFileSync(source.skill, 'CANDIDATE SKILL\n');
+  assert.notEqual(pinnedRun(source, 'status').status, 0, 'WS cwd cannot govern its parent ARC');
+  execFileSync('git', ['add', '-A'], { cwd: source.root });
+  execFileSync('git', ['commit', '-qm', 'Fixture candidate workflow'], { cwd: source.root });
+  execFileSync('git', ['switch', '-q', `arc/${source.arc}`], { cwd: source.root });
+  execFileSync('git', ['merge', '-q', '--no-ff', '-m', 'Fixture candidate merge', 'ws/fixture-candidate'], { cwd: source.root });
+  assert.equal(ok(pinnedRun(source, 'skill')), source.baselineSkill.trim());
+  const output = ok(pinnedRun(source, 'status'));
+  assert.match(output, /BASELINE STATUS/);
+  assert.doesNotMatch(output, /CANDIDATE STATUS/);
+  assert.equal(realpathSync(output.match(/^CWD (.+)$/m)[1]), realpathSync(source.root));
+  const runtime = output.match(/^RUNTIME (.+)$/m)[1];
+  assert.ok(relative(realpathSync(source.root), runtime).startsWith('..'));
+  assert.equal(existsSync(runtime), false, 'temporary runtime is removed after execution');
+  assert.match(ok(pinnedRun(source, 'check')), /BASELINE CHECK/);
+  const ws = ok(pinnedRun(source, 'new', 'workstream', source.arc, 'Baseline governed slice'));
+  assert.ok(existsSync(join(source.root, 'dev-harness', 'workstreams', `${ws}.md`)), 'records stay in ARC cwd');
+  assert.notEqual(pinnedRun(source, 'new', 'workstream', 'other-arc', 'Wrong parent').status, 0);
+  setMetadata(source.arcPath, { status: 'complete', next: 'Await integration approval.' });
+  assert.match(ok(pinnedRun(source, 'check')), /BASELINE CHECK/);
+  assert.equal(readFileSync(join(source.root, 'AGENTS.md'), 'utf8'), before);
+});
+
+test('pinned governance rejects malformed, missing, noncommit, and unrelated bases', () => {
+  const source = sourceFixture();
+  const tree = execFileSync('git', ['rev-parse', `${source.base}^{tree}`], { cwd: source.root, encoding: 'utf8' }).trim();
+  const unrelated = execFileSync('git', ['commit-tree', tree, '-m', 'Unrelated fixture root'], { cwd: source.root, encoding: 'utf8' }).trim();
+  for (const baseSha of [null, source.base.slice(0, 7), '../main', '0'.repeat(40), tree, unrelated]) {
+    setMetadata(source.arcPath, { baseSha });
+    const result = pinnedRun(source, 'status');
+    assert.notEqual(result.status, 0, `must reject ${baseSha}`);
+    assert.doesNotMatch(result.stdout, /BASELINE STATUS|CANDIDATE STATUS/);
+  }
+  setMetadata(source.arcPath, { baseSha: source.base, id: 'wrong-arc' });
+  assert.match(pinnedRun(source, 'skill').stderr, /does not match the current branch/);
+});
+
+test('missing baseline CLI or skill blobs and older baselines fail without live fallback', () => {
+  for (const path of ['cli.mjs', 'skills/dev-harness/SKILL.md']) {
+    const source = sourceFixture(root => unlinkSync(join(root, 'dev-harness', '.harness', path)));
+    const result = pinnedRun(source, 'skill');
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Missing baseline blob/);
+    assert.equal(result.stdout, '');
+  }
+  const source = sourceFixture(root => {
+    const path = join(root, 'dev-harness', '.harness', 'cli.mjs');
+    writeFileSync(path, readFileSync(path, 'utf8').replace('const pinnedRuntimeVersion = 1;', ''));
+  });
+  assert.match(pinnedRun(source, 'status').stderr, /predates pinned support.*manual baseline bootstrap/);
+});
+
+test('baseline skill must be a regular file, not a symlink blob or tree', () => {
+  for (const kind of ['symlink', 'tree']) {
+    const source = sourceFixture(root => {
+      const path = join(root, 'dev-harness', '.harness', 'skills', 'dev-harness', 'SKILL.md');
+      unlinkSync(path);
+      if (kind === 'symlink') symlinkSync('../../config.json', path);
+      else { mkdirSync(path); writeFileSync(join(path, 'nested.md'), 'Not a skill file'); }
+    });
+    assert.match(pinnedRun(source, 'skill').stderr, /Missing baseline blob/);
+  }
+});
+
+test('companion byte changes, absent files, extras, and symlinks fail before baseline commands', () => {
+  const source = sourceFixture();
+  const internal = join(source.root, 'dev-harness', '.harness');
+  for (const path of ['config.json', 'templates/workstream.md', 'adapters/cursor/agents/dev-harness-owner.md']) {
+    const file = join(internal, path);
+    const original = readFileSync(file);
+    writeFileSync(file, Buffer.concat([original, Buffer.from('\nChanged companion\n')]));
+    const result = pinnedRun(source, 'status');
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Live companion differs/);
+    assert.equal(result.stdout, '');
+    assert.equal(ok(pinnedRun(source, 'skill')), source.baselineSkill.trim(), 'skill is read before companion instructions');
+    writeFileSync(file, original);
+    unlinkSync(file);
+    assert.notEqual(pinnedRun(source, 'check').status, 0);
+    writeFileSync(file, original);
+    const duplicate = join(internal, 'duplicate.txt');
+    writeFileSync(duplicate, original);
+    unlinkSync(file);
+    symlinkSync(duplicate, file);
+    assert.match(pinnedRun(source, 'status').stderr, /Invalid live companion/);
+    unlinkSync(file);
+    unlinkSync(duplicate);
+    writeFileSync(file, original);
+  }
+  const extra = join(internal, 'templates', 'extra.md');
+  writeFileSync(extra, 'Extra companion\n');
+  assert.match(pinnedRun(source, 'new', 'workstream', source.arc, 'Never created').stderr, /file set differs/);
+  assert.equal(readdirSync(join(source.root, 'dev-harness', 'workstreams')).length, 0);
+  unlinkSync(extra);
+  assert.match(ok(pinnedRun(source, 'check')), /BASELINE CHECK/);
+});
+
+test('missing required baseline companions fail closed', () => {
+  const source = sourceFixture(root => unlinkSync(join(root, 'dev-harness', '.harness', 'templates', 'workstream.md')));
+  assert.match(pinnedRun(source, 'check').stderr, /Missing baseline blob.*workstream.md/);
+});
+
+test('pinned init and unsupported commands do not mutate the source checkout', () => {
+  const source = sourceFixture();
+  const before = snapshotTree(source.root);
+  for (const args of [['init'], ['new', 'arc', 'Other arc'], ['unknown']]) {
+    assert.notEqual(pinnedRun(source, ...args).status, 0);
+    assert.deepEqual(snapshotTree(source.root), before);
+  }
+  assert.match(pinnedRun(source, 'init').stderr, /forbids init/);
+});
+
+test('pinned runtime refuses a repository-local temporary directory', () => {
+  const source = sourceFixture();
+  const result = spawnSync(process.execPath, [source.localCli, 'pinned', 'status'], {
+    cwd: source.root, encoding: 'utf8', env: { ...process.env, TMPDIR: source.root, TMP: source.root, TEMP: source.root }
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /temporary directory outside the repository/);
+  assert.doesNotMatch(result.stdout, /BASELINE STATUS/);
+  assert.ok(readdirSync(source.root).every(path => !path.startsWith('dev-harness-pinned-')));
+});
+
+test('ordinary project first ARC still works before any scaffold commit and cannot use source pinning', () => {
+  const root = fixture();
+  ok(run(root, 'init'));
+  ok(run(root, 'init'));
+  assert.match(execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' }), /dev-harness/);
+  const arc = ok(run(root, 'new', 'arc', 'First uncommitted scaffold'));
+  assert.match(ok(run(root, 'check')), /Valid: 1 records/);
+  const installed = join(root, 'dev-harness', '.harness', 'cli.mjs');
+  const result = spawnSync(process.execPath, [installed, 'pinned', 'status'], { cwd: root, encoding: 'utf8' });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /only for a Dev Harness package source checkout/);
+  assert.doesNotMatch(readFileSync(join(root, 'AGENTS.md'), 'utf8'), /pinned <command>/);
+  assert.equal(metadata(join(root, 'dev-harness', 'arcs', `${arc}.md`)).status, 'draft');
+});
+
+test('documented independent bootstrap uses committed dispatcher when candidate pinned itself changes', () => {
+  const source = sourceFixture();
+  // Read bootstrap instructions from Git before candidate instructions can change.
+  const baselineSkill = execFileSync('git', ['show', `${source.base}:dev-harness/.harness/skills/dev-harness/SKILL.md`],
+    { cwd: source.root, encoding: 'utf8' });
+  const bootstrap = baselineSkill.match(/```js\n([\s\S]*?)\n```/)[1];
+  assert.match(baselineSkill, /before invoking any dispatcher/);
+  assert.doesNotMatch(baselineSkill, /`node dev-harness\/\.harness\/cli\.mjs pinned /);
+  execFileSync('git', ['switch', '-qc', 'ws/fixture-dispatcher-change'], { cwd: source.root });
+  writeFileSync(source.localCli, readFileSync(source.localCli, 'utf8')
+    .replace('function pinned(args) {', 'function pinned(args) { console.log("CANDIDATE GOVERNANCE"); return;'));
+  writeFileSync(source.skill, 'CANDIDATE GOVERNANCE INSTRUCTIONS\n');
+  execFileSync('git', ['add', '-A'], { cwd: source.root });
+  execFileSync('git', ['commit', '-qm', 'Fixture candidate dispatcher'], { cwd: source.root });
+  execFileSync('git', ['switch', '-q', `arc/${source.arc}`], { cwd: source.root });
+  execFileSync('git', ['merge', '-q', '--no-ff', '-m', 'Fixture dispatcher merge', 'ws/fixture-dispatcher-change'], { cwd: source.root });
+  assert.equal(ok(pinnedRun(source, 'check')), 'CANDIDATE GOVERNANCE', 'live entrypoint reproduces the review finding');
+  function independent(...args) {
+    return spawnSync(process.execPath, ['--input-type=module', '-', 'pinned', ...args], {
+      cwd: source.root, encoding: 'utf8', input: bootstrap,
+      env: { ...process.env, DEV_HARNESS_BASE_SHA: metadata(source.arcPath).baseSha }
+    });
+  }
+  assert.equal(ok(independent('skill')), baselineSkill.trim());
+  const output = ok(independent('check'));
+  assert.match(output, /BASELINE CHECK/);
+  assert.match(output, /Valid: 1 records/);
+  assert.doesNotMatch(output, /CANDIDATE GOVERNANCE/);
+  setMetadata(source.arcPath, { status: 'complete', next: 'Await integration approval.' });
+  assert.match(ok(independent('check')), /BASELINE CHECK/);
+  assert.notEqual(independent('init').status, 0);
+  setMetadata(source.arcPath, { baseSha: source.base.slice(0, 7) });
+  assert.notEqual(independent('check').status, 0, 'independent extraction rejects malformed SHA before any dispatcher');
 });

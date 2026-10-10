@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, realpathSync, renameSync, rmdirSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, realpathSync, renameSync, rmSync, rmdirSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const source = dirname(fileURLToPath(import.meta.url));
@@ -12,6 +13,8 @@ const internal = join(home, '.harness');
 const markerStart = '<!-- dev-harness:start -->';
 const markerEnd = '<!-- dev-harness:end -->';
 const entry = `${markerStart}\nAt the start of a session, read \`dev-harness/.harness/skills/dev-harness/SKILL.md\`.\nRun \`node dev-harness/.harness/cli.mjs status\` and present its data using the skill's Session summary template, not raw output.\nFollow the skill before planning or changing this project.\n${markerEnd}`;
+const sourceEntry = `${markerStart}\nFor every source-repository ARC, validate its full baseSha as an ancestor commit and its regular committed CLI/skill blobs. Read the baseline skill with \`git show BASE_SHA:dev-harness/.harness/skills/dev-harness/SKILL.md\` before following live instructions. Independently extract the CLI from that same SHA into an OS temporary directory verified outside the repo; verify its bytes against Git. Only invoke that absolute baseline CLI path from the ARC checkout, including \`node ABSOLUTE_BASELINE_CLI pinned skill\` and \`node ABSOLUTE_BASELINE_CLI pinned <command>\` when the baseline supports pinning. Never invoke the live candidate CLI's pinned dispatcher for governance. If the baseline predates pinned support, manually verify companion files and run the extracted baseline CLI as described in the source skill, after reading the baseline skill. Fail closed; no live fallback or pinned init. Outside a source ARC, read \`dev-harness/.harness/skills/dev-harness/SKILL.md\` and run \`node dev-harness/.harness/cli.mjs status\`. Present status using the skill's Session summary template.\n${markerEnd}`;
+const pinnedRuntimeVersion = 1;
 const gates = ['RESEARCH', 'IMPLEMENT', 'REVIEW', 'USER CONFIRM', 'MERGED', 'DEFERRED', 'CANCELLED', 'SPLIT'];
 const roles = ['planner', 'reviewer', 'owner'];
 
@@ -134,9 +137,10 @@ function init(target) {
     const next = body.replace(/^model: .+$/m, `model: ${config(runtime).models.subagents}`);
     if (next !== body) writeFileSync(path, next);
   }
+  const instruction = isPackageSourceCheckout(target) ? sourceEntry : entry;
   const updated = previous.includes(markerStart)
-    ? previous.replace(/<!-- dev-harness:start -->[\s\S]*?<!-- dev-harness:end -->/, entry)
-    : `${previous}${previous ? '\n\n' : ''}${entry}\n`;
+    ? previous.replace(/<!-- dev-harness:start -->[\s\S]*?<!-- dev-harness:end -->/, instruction)
+    : `${previous}${previous ? '\n\n' : ''}${instruction}\n`;
   if (updated !== previous) writeFileSync(agents, updated);
   for (const link of discovery) {
     mkdirSync(dirname(link.path), { recursive: true });
@@ -281,9 +285,109 @@ function createRecord(kind, arc, title) {
   console.log(id);
 }
 
+// This entry point is an operational bootstrap. The governing CLI and skill come
+// from the ARC's committed base, never from a candidate WS or ARC revision.
+function pinned(args) {
+  const [command, ...rest] = args;
+  if (command === 'init') throw new Error('Pinned source-ARC governance forbids init. Test candidate init only in a disposable repository.');
+  if (!['skill', 'status', 'check', 'new'].includes(command)
+      || (command === 'new' && rest[0] !== 'workstream')) {
+    throw new Error('Pinned commands: skill, status, check, new workstream ARC_ID "Title".');
+  }
+  if (!isPackageSourceCheckout(root)) throw new Error('Pinned governance is only for a Dev Harness package source checkout.');
+  const branch = git(['branch', '--show-current']);
+  if (!branch.startsWith('arc/')) throw new Error('Pinned governance requires the parent ARC checkout.');
+  const id = branch.slice(4);
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9-]*$/.test(id)) throw new Error('Invalid ARC branch name.');
+  const arcPath = join(home, 'arcs', `${id}.md`);
+  const match = readFileSync(arcPath, 'utf8').match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
+  if (!match) throw new Error('ARC record lacks JSON frontmatter.');
+  const arc = JSON.parse(match[1]);
+  if (arc.kind !== 'arc' || arc.id !== id || arc.branch !== branch) throw new Error('ARC record does not match the current branch.');
+  const sha = arc.baseSha;
+  if (typeof sha !== 'string' || !/^[0-9a-f]{40}$/.test(sha)) throw new Error('ARC baseSha must be a full lowercase commit SHA.');
+  const gitRead = gitArgs => execFileSync('git', gitArgs, { cwd: root, stdio: ['ignore', 'pipe', 'pipe'] });
+  if (gitRead(['cat-file', '-t', sha]).toString().trim() !== 'commit') throw new Error('ARC baseSha is not a commit.');
+  const ancestor = spawnSync('git', ['merge-base', '--is-ancestor', sha, 'HEAD'], { cwd: root });
+  if (ancestor.status !== 0) throw new Error('ARC baseSha is not an ancestor of HEAD.');
+  const prefix = 'dev-harness/.harness/';
+  const skillPath = `${prefix}skills/dev-harness/SKILL.md`;
+  const cliPath = `${prefix}cli.mjs`;
+  const blob = path => {
+    try {
+      const tree = gitRead(['ls-tree', sha, '--', path]).toString();
+      if (!/^100(?:644|755) blob /.test(tree)
+          || gitRead(['cat-file', '-t', `${sha}:${path}`]).toString().trim() !== 'blob') {
+        throw new Error('Not a regular file blob.');
+      }
+      return gitRead(['show', `${sha}:${path}`]);
+    }
+    catch { throw new Error(`Missing baseline blob: ${path}`); }
+  };
+  const baselineCli = blob(cliPath);
+  const baselineSkill = blob(skillPath);
+  if (!/^const pinnedRuntimeVersion = 1;$/m.test(baselineCli.toString())) {
+    throw new Error('ARC base CLI predates pinned support. Use the documented manual baseline bootstrap; live governance is forbidden.');
+  }
+  if (command === 'skill') {
+    process.stdout.write(baselineSkill);
+    return;
+  }
+  if (command === 'new' && rest[1] !== id) throw new Error('Pinned workstreams must belong to the current ARC.');
+  const paths = gitRead(['ls-tree', '-r', '--name-only', sha, '--',
+    `${prefix}config.json`, `${prefix}templates`, `${prefix}adapters`, `${prefix}skills`])
+    .toString().trim().split('\n').filter(Boolean);
+  const companions = paths.filter(path => path === `${prefix}config.json`
+    || path.startsWith(`${prefix}templates/`) || path.startsWith(`${prefix}adapters/`));
+  const required = [
+    `${prefix}config.json`, `${prefix}templates/arc.md`, `${prefix}templates/workstream.md`,
+    `${prefix}templates/context.md`, `${prefix}templates/gitignore`,
+    ...roles.map(role => `${prefix}adapters/cursor/agents/dev-harness-${role}.md`)
+  ];
+  for (const path of required) if (!companions.includes(path)) throw new Error(`Missing baseline blob: ${path}`);
+  const livePaths = [];
+  function visit(path) {
+    const stat = exists(path);
+    if (!stat) throw new Error(`Missing live companion: ${relative(root, path)}`);
+    if (stat.isDirectory()) {
+      for (const name of readdirSync(path)) visit(join(path, name));
+    } else if (stat.isFile()) livePaths.push(relative(root, path));
+    else throw new Error(`Invalid live companion: ${relative(root, path)}`);
+  }
+  for (const path of [`${prefix}config.json`, `${prefix}templates`, `${prefix}adapters`]) visit(join(root, path));
+  if (livePaths.sort().join('\n') !== companions.sort().join('\n')) {
+    throw new Error('Live companion file set differs from ARC baseline.');
+  }
+  for (const path of companions) {
+    if (!readFileSync(join(root, path)).equals(blob(path))) throw new Error(`Live companion differs from ARC baseline: ${path}`);
+  }
+  const temporaryRoot = realpathSync(tmpdir());
+  const fromRepository = relative(realpathSync(root), temporaryRoot);
+  if (!fromRepository || (!fromRepository.startsWith(`..${sep}`) && fromRepository !== '..')) {
+    throw new Error('Pinned runtime requires an OS temporary directory outside the repository.');
+  }
+  const temporary = mkdtempSync(join(temporaryRoot, 'dev-harness-pinned-'));
+  try {
+    for (const path of [cliPath, skillPath, ...paths]) {
+      const destination = join(temporary, path);
+      mkdirSync(dirname(destination), { recursive: true });
+      writeFileSync(destination, blob(path));
+    }
+    const result = spawnSync(process.execPath, [join(temporary, cliPath), command, ...rest],
+      { cwd: root, encoding: 'utf8' });
+    if (result.stdout) process.stdout.write(result.stdout);
+    if (result.stderr) process.stderr.write(result.stderr);
+    if (result.error) throw result.error;
+    if (result.status !== 0) process.exitCode = result.status || 1;
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
+}
+
 try {
   const [command = 'init', ...args] = process.argv.slice(2);
   if (command === 'init') init(resolve(args[0] || root));
+  else if (command === 'pinned') pinned(args);
   else if (command === 'status') status();
   else if (command === 'check') {
     const settings = config();
@@ -294,7 +398,7 @@ try {
     console.log(`Valid: ${records().length} records. Structural validation only.`);
   }
   else if (command === 'new') create(args[0], args[0] === 'workstream' ? args[1] : undefined, args.slice(args[0] === 'workstream' ? 2 : 1).join(' '));
-  else throw new Error('Commands: init [repository], status, new arc|workstream, check');
+  else throw new Error('Commands: init [repository], status, new arc|workstream, check, pinned skill|status|check|new workstream');
 } catch (error) {
   console.error(`Dev Harness: ${error.message}`);
   process.exitCode = 1;
