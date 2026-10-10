@@ -9,8 +9,8 @@
   },
   "revision": 1,
   "created": "2026-10-10T20:08:56.365Z",
-  "updated": "2026-10-10T20:10:20.000Z",
-  "next": "Wait for WS-01 MERGED, then request user go for IMPLEMENT of revision 1.",
+  "updated": "2026-10-10T20:36:27.000Z",
+  "next": "Request user approval to implement revision 1 after RESEARCH PASS.",
   "arc": "2026-10-10-soner-can--self-hosted-harness-safety",
   "sequence": 2,
   "gate": "RESEARCH"
@@ -63,7 +63,8 @@ layout. Do not claim tamper-proof enforcement from mutable repo instructions.
 
 ## Gate
 
-Current: `RESEARCH` · `awaiting-user-go`. Next action: wait for WS-01 MERGED, then request user go for IMPLEMENT of revision 1.
+Current: `RESEARCH` · `awaiting-user-go`. WS-01 is MERGED; next action is
+requesting user approval to implement revision 1.
 Add a modifier when relevant. RESEARCH Exited stays `—` until user authorizes IMPLEMENT.
 
 | Gate | Entered | Exited | Outcome |
@@ -101,3 +102,6 @@ commits, merge SHAs, and arc smoke-test results.
 - 2026-10-10 · Reviewed ARC plan saved as WS revision 1; no code authorized.
 - 2026-10-10 · RESEARCH outcome PASS; awaiting-user-go and WS-01 MERGED.
   Exited remains open.
+- 2026-10-10 · Dependency satisfied by WS-01 ARC merge
+  `e5fe224da80201c8ecd54051579e6704b9c936fb`; RESEARCH remains open
+  pending user approval to implement revision 1.
