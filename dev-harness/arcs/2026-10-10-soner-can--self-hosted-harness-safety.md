@@ -9,8 +9,8 @@
   },
   "revision": 1,
   "created": "2026-10-10T20:08:46.209Z",
-  "updated": "2026-10-10T20:56:18.000Z",
-  "next": "Present the ARC confirm checklist and request separate approval to integrate into main.",
+  "updated": "2026-10-10T20:58:22.000Z",
+  "next": "Merge the approved ARC into main, verify integration, and record its merge SHA.",
   "status": "in-progress",
   "branch": "arc/2026-10-10-soner-can--self-hosted-harness-safety",
   "integrationBranch": "main",
@@ -52,6 +52,8 @@ automatic commits/merges/pushes, and retroactive fixes to older packages.
 - 2026-10-10 · User: accepted reviewed WS-02 revision 1 and approved its
   code/ARC/WS record commits, WS→ARC merge, and ARC smoke test. No ARC→main
   merge or push was authorized.
+- 2026-10-10 · User: approved integration of this reviewed ARC into `main`.
+  No push or WS worktree cleanup was authorized.
 
 ## Branch and rollup
 
@@ -70,9 +72,9 @@ Keep this rollup aligned with WS records:
 - [x] Arc smoke tests after each WS merge and final integration checks passed.
 - [x] External-package init cannot overwrite the source checkout; normal
       user-project init/re-init and first ARC still work.
-- [ ] Source ARC remains governed by its starting rules through final approval;
+- [x] Source ARC remains governed by its starting rules through final approval;
       missing baseline or changed companion inputs fail closed.
-- [ ] User approved integration of the reviewed revision.
+- [x] User approved integration of the reviewed revision.
 
 ## Progress ledger
 
@@ -137,3 +139,7 @@ Record dated gate changes, reviews, integration-branch syncs, and Git commit/mer
   passed 25/25; extracted original-baseline CLI `check` reported 3 valid
   records; baseline SHA is an ancestor commit and companion files match it.
   Both workstreams are MERGED. No ARC→main merge or push.
+- 2026-10-10 · User approved the ARC confirm checklist and ARC→main merge.
+  The original baseline governed this ARC through approval; its full SHA,
+  ancestor relationship, companion equality, and structural check passed.
+  No push or worktree cleanup authorized.
