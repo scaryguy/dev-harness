@@ -9,9 +9,9 @@
   },
   "revision": 1,
   "created": "2026-10-10T20:08:46.209Z",
-  "updated": "2026-10-10T20:58:22.000Z",
-  "next": "Merge the approved ARC into main, verify integration, and record its merge SHA.",
-  "status": "in-progress",
+  "updated": "2026-10-10T20:59:30.000Z",
+  "next": "Integrated into main; no further ARC action pending.",
+  "status": "complete",
   "branch": "arc/2026-10-10-soner-can--self-hosted-harness-safety",
   "integrationBranch": "main",
   "baseSha": "94cb347b640dd301ee1718d79e1a96be3a496a8f"
@@ -58,7 +58,8 @@ automatic commits/merges/pushes, and retroactive fixes to older packages.
 ## Branch and rollup
 
 Branch: `arc/2026-10-10-soner-can--self-hosted-harness-safety` from `main` at
-`94cb347b640dd301ee1718d79e1a96be3a496a8f`. Final merge SHA: pending.
+`94cb347b640dd301ee1718d79e1a96be3a496a8f`. Final merge SHA:
+`28335cb5c464831e483621dccb64a4c49ad136fe`.
 Keep this rollup aligned with WS records:
 
 | WS | Gate | Depends on | WS branch | Merge SHA |
@@ -143,3 +144,6 @@ Record dated gate changes, reviews, integration-branch syncs, and Git commit/mer
   The original baseline governed this ARC through approval; its full SHA,
   ancestor relationship, companion equality, and structural check passed.
   No push or worktree cleanup authorized.
+- 2026-10-10 · ARC merged locally into `main` as
+  `28335cb5c464831e483621dccb64a4c49ad136fe`. Post-merge `npm test`
+  passed 25/25. ARC marked complete; no push or worktree cleanup.
