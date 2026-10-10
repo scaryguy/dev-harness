@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-10-10T20:08:56.365Z",
-  "updated": "2026-10-10T20:36:27.000Z",
-  "next": "Request user approval to implement revision 1 after RESEARCH PASS.",
+  "updated": "2026-10-10T20:54:59.000Z",
+  "next": "Commit reviewed revision 1, merge WS into ARC, and smoke-test ARC.",
   "arc": "2026-10-10-soner-can--self-hosted-harness-safety",
   "sequence": 2,
-  "gate": "RESEARCH"
+  "gate": "USER CONFIRM"
 }
 ---
 
@@ -25,8 +25,11 @@
 
 ## Checkout
 
-Fill after implementation approval: WS branch, parent arc branch, and worktree path
-relative to the repository root (`../<repo-name>-worktrees/<ws-id>/`).
+WS branch: `ws/WS-soner-can-02--pinned-self-hosted-arc-governance` from
+`arc/2026-10-10-soner-can--self-hosted-harness-safety` @ `b066e00`.
+External worktree:
+`../dev-harness-worktrees/WS-soner-can-02--pinned-self-hosted-arc-governance/`.
+The ARC checkout owns these records; copies in the WS worktree are not authoritative.
 
 ## Scope and approach
 
@@ -63,13 +66,17 @@ layout. Do not claim tamper-proof enforcement from mutable repo instructions.
 
 ## Gate
 
-Current: `RESEARCH` · `awaiting-user-go`. WS-01 is MERGED; next action is
-requesting user approval to implement revision 1.
-Add a modifier when relevant. RESEARCH Exited stays `—` until user authorizes IMPLEMENT.
+Current: `USER CONFIRM`. User accepted reviewed revision 1; next action is
+commit, WS→ARC merge, and ARC smoke test.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
-| RESEARCH | 2026-10-10 | — | PASS |
+| RESEARCH | 2026-10-10 | 2026-10-10 | PASS |
+| IMPLEMENT | 2026-10-10 | 2026-10-10 | Owner checks PASS |
+| REVIEW | 2026-10-10 | 2026-10-10 | CHANGES-REQUESTED |
+| IMPLEMENT | 2026-10-10 | 2026-10-10 | Owner checks PASS |
+| REVIEW | 2026-10-10 | 2026-10-10 | PASS |
+| USER CONFIRM | 2026-10-10 | — | — |
 
 ## Verification
 
@@ -79,13 +86,36 @@ Add a modifier when relevant. RESEARCH Exited stays `—` until user authorizes 
   and pinned `init`; never silently use live files.
 - User-project fixture: init/re-init and first ARC before committing scaffold
   still work. Run package/test suite and `check`; provide CLI UAT commands.
+- Owner-reported, 2026-10-10: `npm test` 24/24 PASS (nine new pinning tests),
+  original-baseline ARC `check` PASS with 3 valid records, and
+  `git diff --check` PASS. Four code/instruction files remain unstaged for
+  independent review. This ARC was not governed by its candidate CLI.
+- Independent reviewer, 2026-10-10: CHANGES-REQUESTED. A disposable
+  future-ARC fixture demonstrated that a candidate edit to `pinned()` can
+  make the documented live command print candidate governance, while an
+  independently extracted baseline dispatcher returns valid baseline check.
+  Add a dispatcher-tampering regression and require baseline-first startup.
+- Owner-reported revision, 2026-10-10: independently validated baseline CLI
+  extraction now precedes source-ARC `pinned` commands; new regression tampers
+  with candidate dispatcher. `npm test` 25/25 PASS, original-baseline ARC
+  `check` PASS with 3 records, `git diff --check` PASS. Re-review pending.
+- Independent reviewer, 2026-10-10: PASS. Verified the documented bootstrap
+  executes the committed dispatcher even when candidate `pinned()` is replaced
+  after a WS→ARC merge. `npm test` 25/25 PASS, diff check PASS, and current
+  ARC's manually extracted original-baseline status/check PASS with exact
+  companion file-set/bytes. No app server is relevant; for user UAT run
+  `npm test` from
+  `/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-02--pinned-self-hosted-arc-governance`.
+  The focused test is `node --test --test-name-pattern='documented independent bootstrap' dev-harness/.harness/cli.test.mjs`.
+  Inspect the unstaged revision with `git diff`; do not use candidate
+  `pinned` to govern the real ARC.
 
 ## User confirm checklist
 
-- [ ] Source ARC reads and runs the pinned baseline through final approval.
-- [ ] Invalid baselines/companion changes fail closed; pinned init is refused.
-- [ ] Normal user-project first ARC is unaffected.
-- [ ] User approves merge of the reviewed revision into the parent ARC.
+- [x] Source ARC reads and runs the pinned baseline through final approval.
+- [x] Invalid baselines/companion changes fail closed; pinned init is refused.
+- [x] Normal user-project first ARC is unaffected.
+- [x] User approves merge of the reviewed revision into the parent ARC.
 
 ## Approvals
 
@@ -93,6 +123,11 @@ Add a modifier when relevant. RESEARCH Exited stays `—` until user authorizes 
   review or implementation approval.
 - 2026-10-10 · Independent per-WS RESEARCH review PASS on revision 1;
   implementation still requires user go after WS-01 MERGED.
+- 2026-10-10 · User approved revision 1 IMPLEMENT after WS-01 merged;
+  no commit, merge, ARC integration, or push approval was given.
+- 2026-10-10 · Independent code re-review PASS on revision 1; user accepted
+  the CLI test handoff and approved code/ARC/WS record commits, WS→ARC merge,
+  and ARC smoke tests. No ARC→main merge or push approval.
 
 ## Progress ledger
 
@@ -105,3 +140,22 @@ commits, merge SHAs, and arc smoke-test results.
 - 2026-10-10 · Dependency satisfied by WS-01 ARC merge
   `e5fe224da80201c8ecd54051579e6704b9c936fb`; RESEARCH remains open
   pending user approval to implement revision 1.
+- 2026-10-10 · User go: RESEARCH exited and IMPLEMENT entered. Branch
+  `ws/WS-soner-can-02--pinned-self-hosted-arc-governance` created from ARC
+  @ `b066e00`; external worktree prepared. No implementation result yet.
+- 2026-10-10 · Owner reported revision 1 ready: four unstaged files,
+  `npm test` 24/24 PASS, original-baseline ARC check PASS, diff check PASS.
+  IMPLEMENT exited; independent REVIEW entered. No commit or merge.
+- 2026-10-10 · Independent REVIEW CHANGES-REQUESTED: live candidate
+  `pinned()` can bypass baseline rules even when following documented
+  startup. REVIEW exited; returned to IMPLEMENT for baseline-first dispatch
+  and regression. No commit or merge.
+- 2026-10-10 · Owner revised bootstrap instructions and added tampered
+  candidate dispatcher regression. IMPLEMENT exited; REVIEW re-entered.
+  Owner checks PASS (25/25 tests, original-baseline ARC check, diff check).
+  No commit or merge.
+- 2026-10-10 · Independent re-review PASS; prior finding resolved. REVIEW
+  exited; USER CONFIRM entered. Four files remain unstaged for user CLI UAT.
+  No commit or merge authorization yet.
+- 2026-10-10 · User confirmed reviewed revision 1 and authorized WS-02
+  commit/merge to ARC plus ARC smoke test. USER CONFIRM exits at MERGED.

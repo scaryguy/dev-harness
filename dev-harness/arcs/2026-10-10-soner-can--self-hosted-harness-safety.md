@@ -9,8 +9,8 @@
   },
   "revision": 1,
   "created": "2026-10-10T20:08:46.209Z",
-  "updated": "2026-10-10T20:36:27.000Z",
-  "next": "Request user approval to implement WS-02 revision 1 after its RESEARCH PASS.",
+  "updated": "2026-10-10T20:54:59.000Z",
+  "next": "Commit approved WS-02 code and records, merge WS-02 into ARC, then smoke-test.",
   "status": "in-progress",
   "branch": "arc/2026-10-10-soner-can--self-hosted-harness-safety",
   "integrationBranch": "main",
@@ -47,6 +47,11 @@ automatic commits/merges/pushes, and retroactive fixes to older packages.
   implementation scope was locked before user approval of this reviewed draft.
 - 2026-10-10 · User: approved revision 1 scope and WS-01 IMPLEMENT. This did
   not approve WS-02 IMPLEMENT, WS merge, ARC integration, commit, or push.
+- 2026-10-10 · User: approved WS-02 revision 1 IMPLEMENT after WS-01 merged.
+  No commit, merge, ARC integration, or push approval was given.
+- 2026-10-10 · User: accepted reviewed WS-02 revision 1 and approved its
+  code/ARC/WS record commits, WS→ARC merge, and ARC smoke test. No ARC→main
+  merge or push was authorized.
 
 ## Branch and rollup
 
@@ -57,7 +62,7 @@ Keep this rollup aligned with WS records:
 | WS | Gate | Depends on | WS branch | Merge SHA |
 |----|------|------------|-----------|-----------|
 | [WS-01](../workstreams/WS-soner-can-01--source-init-protection.md) | MERGED | — | `ws/WS-soner-can-01--source-init-protection` | `e5fe224da80201c8ecd54051579e6704b9c936fb` |
-| [WS-02](../workstreams/WS-soner-can-02--pinned-self-hosted-arc-governance.md) | RESEARCH | WS-01 MERGED | — | — |
+| [WS-02](../workstreams/WS-soner-can-02--pinned-self-hosted-arc-governance.md) | USER CONFIRM | WS-01 MERGED | `ws/WS-soner-can-02--pinned-self-hosted-arc-governance` | — |
 
 ## Integration checklist
 
@@ -106,3 +111,23 @@ Record dated gate changes, reviews, integration-branch syncs, and Git commit/mer
   15/15; baseline CLI `check` reported 3 structurally valid records.
   Companion config, templates, and adapters still match the ARC base SHA.
   WS-02 remains RESEARCH pending user implementation approval.
+- 2026-10-10 · User approved WS-02 revision 1 IMPLEMENT. WS branch/worktree
+  created from ARC @ `b066e00`; RESEARCH exited and IMPLEMENT entered.
+- 2026-10-10 · WS-02 owner reported implementation ready in four unstaged
+  files; `npm test` 24/24 PASS, original-baseline ARC `check` PASS,
+  `git diff --check` PASS. IMPLEMENT exited; independent REVIEW opened.
+- 2026-10-10 · Independent WS-02 REVIEW CHANGES-REQUESTED: documented
+  future-ARC startup invokes the mutable candidate `pinned` dispatcher.
+  Disposable reproduction bypassed baseline governance. Returned to IMPLEMENT
+  for baseline-first dispatch and regression; no commit or merge.
+- 2026-10-10 · Owner revised documented bootstrap and added a regression
+  that tampers with candidate `pinned()` after WS→ARC merge. Owner checks:
+  `npm test` 25/25 PASS, original-baseline ARC `check` PASS, diff check PASS.
+  IMPLEMENT exited; independent re-review opened.
+- 2026-10-10 · Independent WS-02 re-review PASS; prior mutable-dispatcher
+  finding resolved. Reviewer ran 25/25 tests, diff check, and manual original-
+  baseline status/check with companion verification; all PASS. REVIEW exited;
+  USER CONFIRM entered. Four changes remain unstaged in WS worktree. No commit,
+  merge, ARC integration, or push authorized.
+- 2026-10-10 · User confirmed reviewed WS-02 revision 1 after the CLI test
+  handoff and authorized commit, WS→ARC merge, and ARC smoke tests only.
