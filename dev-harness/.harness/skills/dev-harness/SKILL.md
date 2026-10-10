@@ -5,11 +5,96 @@ description: Start, plan, implement, review, or resume repository work using Dev
 
 # Dev Harness
 
+## Source-repository ARC bootstrap
+
+This section applies only when this package's source checkout is on an `arc/*`
+branch. The ARC record's full `baseSha` pins governance from ARC creation through
+final approval. Validate the SHA as an ancestor commit and the CLI/skill as
+regular committed blobs. Read the baseline skill with
+`git show BASE_SHA:dev-harness/.harness/skills/dev-harness/SKILL.md` before
+following any live instructions.
+
+For **every** source ARC, independently extract its committed baseline CLI to an
+OS temporary directory verified outside the repository, and verify the extracted
+bytes against Git **before invoking any dispatcher**. Always invoke that absolute
+baseline path with cwd at the ARC checkout. Never invoke the live candidate CLI's
+`pinned` dispatcher for governance: candidate changes can replace that dispatcher
+as well as the commands it dispatches. There is no live fallback.
+
+When the baseline already supports pinning, use the independent bootstrap below.
+From the ARC checkout, set `DEV_HARNESS_BASE_SHA` to the exact full SHA from its
+record. Run this code with `node --input-type=module - pinned skill` (provide the
+code on stdin); read the skill it prints. Repeat the same independent bootstrap
+for each invocation, replacing the arguments with `pinned status`, `pinned check`,
+or `pinned new workstream ARC_ID "Title"`. This code uses Git and Node built-ins
+only; it must not import, execute, or extract from the candidate CLI.
+
+```js
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, relative, sep } from 'node:path';
+
+const root = process.cwd();
+const sha = process.env.DEV_HARNESS_BASE_SHA;
+const git = args => execFileSync('git', args, { cwd: root });
+if (!/^[0-9a-f]{40}$/.test(sha || '')
+    || git(['cat-file', '-t', sha]).toString().trim() !== 'commit') throw Error('Invalid full baseline commit SHA.');
+git(['merge-base', '--is-ancestor', sha, 'HEAD']);
+function blob(path) {
+  if (!/^100(?:644|755) blob /.test(git(['ls-tree', sha, '--', path]).toString())
+      || git(['cat-file', '-t', `${sha}:${path}`]).toString().trim() !== 'blob') throw Error(`Invalid baseline blob: ${path}`);
+  return git(['show', `${sha}:${path}`]);
+}
+blob('dev-harness/.harness/skills/dev-harness/SKILL.md');
+const cli = blob('dev-harness/.harness/cli.mjs');
+if (!/^const pinnedRuntimeVersion = 1;$/m.test(cli.toString())) throw Error('Older baseline: use manual verified governance.');
+const args = process.argv.slice(2);
+if (args[0] !== 'pinned' || args[1] === 'init') throw Error('Use pinned governance; init is forbidden.');
+const temporaryRoot = realpathSync(tmpdir());
+const fromRepo = relative(realpathSync(root), temporaryRoot);
+if (!fromRepo || (!fromRepo.startsWith(`..${sep}`) && fromRepo !== '..')) throw Error('Temporary directory must be outside repo.');
+const temporary = mkdtempSync(join(temporaryRoot, 'dev-harness-baseline-dispatcher-'));
+try {
+  const baselineCli = join(temporary, 'cli.mjs');
+  writeFileSync(baselineCli, cli, { flag: 'wx' });
+  if (!readFileSync(baselineCli).equals(cli)) throw Error('Extracted CLI differs from Git.');
+  const result = spawnSync(process.execPath, [baselineCli, ...args], { cwd: root, stdio: 'inherit' });
+  if (result.error) throw result.error;
+  process.exitCode = result.status ?? 1;
+} finally { rmSync(temporary, { recursive: true, force: true }); }
+```
+
+The committed dispatcher validates the ARC record against the branch, verifies
+live config/templates/adapters byte for byte and as a file set before commands
+that read them, and runs committed governance from another temporary runtime
+outside the repository, with cwd at the ARC checkout. Any invalid or changed
+input stops the command. Never run `pinned init`; test candidate `init` only in
+disposable Git repositories.
+
+If an ARC's `baseSha` predates pinned support, validate the full SHA with
+`git cat-file -t BASE_SHA` (must print `commit`), verify
+`git merge-base --is-ancestor BASE_SHA HEAD`, and verify regular CLI/skill blobs
+with `git ls-tree BASE_SHA -- PATH` (mode `100644` or `100755`, type `blob`).
+Read its skill from Git before live instructions, then explicitly extract the
+baseline `.harness` runtime into an OS temporary directory verified outside the
+repository and verify its bytes against Git. Before each direct baseline command,
+compare live config, templates, and adapters against the baseline tree, including
+missing or extra files; reject symlinks and stop on any difference. Run the absolute
+extracted baseline CLI path with cwd at the ARC checkout. Never invoke candidate
+`pinned` support to govern an older ARC.
+
+This is an operational rule: mutable source instructions and already published
+packages are outside its trust boundary. These source-ARC rules override all
+unpinned command and init instructions below, including instructions printed by
+a baseline that predates this bootstrap.
+
 Run commands from the repository root. At session start, run
 `node dev-harness/.harness/cli.mjs status` and present it once using the summary below,
 not the raw CLI output.
 Read `dev-harness/.harness/config.json`, `dev-harness/.harness/knowledge/context.md`, and relevant records.
-After changing the configured subagent model, rerun `node dev-harness/.harness/cli.mjs init`.
+Outside a source ARC, after changing the configured subagent model, rerun
+`node dev-harness/.harness/cli.mjs init`.
 Check the orchestrator is configured for the requested model. If model identity is not
 observable, ask the user to confirm the picker; do not claim it was verified.
 
