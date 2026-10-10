@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-10-10T20:08:56.365Z",
-  "updated": "2026-10-10T20:54:59.000Z",
-  "next": "Commit reviewed revision 1, merge WS into ARC, and smoke-test ARC.",
+  "updated": "2026-10-10T20:56:18.000Z",
+  "next": "Integrated into ARC; await separate ARC integration approval.",
   "arc": "2026-10-10-soner-can--self-hosted-harness-safety",
   "sequence": 2,
-  "gate": "USER CONFIRM"
+  "gate": "MERGED"
 }
 ---
 
@@ -30,6 +30,9 @@ WS branch: `ws/WS-soner-can-02--pinned-self-hosted-arc-governance` from
 External worktree:
 `../dev-harness-worktrees/WS-soner-can-02--pinned-self-hosted-arc-governance/`.
 The ARC checkout owns these records; copies in the WS worktree are not authoritative.
+Code commit: `6313d9c`. ARC merge:
+`88438f996bfe2286f34b70faf04b83513b22d6a5`. The WS branch and worktree
+remain in place pending separate cleanup approval.
 
 ## Scope and approach
 
@@ -66,8 +69,7 @@ layout. Do not claim tamper-proof enforcement from mutable repo instructions.
 
 ## Gate
 
-Current: `USER CONFIRM`. User accepted reviewed revision 1; next action is
-commit, WS→ARC merge, and ARC smoke test.
+Current: `MERGED`. User accepted reviewed revision 1; ARC smoke checks passed.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
@@ -76,7 +78,8 @@ commit, WS→ARC merge, and ARC smoke test.
 | REVIEW | 2026-10-10 | 2026-10-10 | CHANGES-REQUESTED |
 | IMPLEMENT | 2026-10-10 | 2026-10-10 | Owner checks PASS |
 | REVIEW | 2026-10-10 | 2026-10-10 | PASS |
-| USER CONFIRM | 2026-10-10 | — | — |
+| USER CONFIRM | 2026-10-10 | 2026-10-10 | User approved |
+| MERGED | 2026-10-10 | — | ARC smoke PASS |
 
 ## Verification
 
@@ -109,6 +112,9 @@ commit, WS→ARC merge, and ARC smoke test.
   The focused test is `node --test --test-name-pattern='documented independent bootstrap' dev-harness/.harness/cli.test.mjs`.
   Inspect the unstaged revision with `git diff`; do not use candidate
   `pinned` to govern the real ARC.
+- After ARC merge, 2026-10-10: integrated `npm test` 25/25 PASS; original
+  baseline CLI `check` reported 3 valid records; companion inputs still match
+  the ARC base SHA. No candidate dispatcher governed this ARC.
 
 ## User confirm checklist
 
@@ -159,3 +165,7 @@ commits, merge SHAs, and arc smoke-test results.
   No commit or merge authorization yet.
 - 2026-10-10 · User confirmed reviewed revision 1 and authorized WS-02
   commit/merge to ARC plus ARC smoke test. USER CONFIRM exits at MERGED.
+- 2026-10-10 · ARC/WS acceptance record commit `911f806`; WS code commit
+  `6313d9c`; WS→ARC merge `88438f996bfe2286f34b70faf04b83513b22d6a5`.
+  USER CONFIRM exited; MERGED entered. Integrated ARC `npm test` 25/25 PASS,
+  baseline CLI `check` 3 valid records. No ARC→main merge or push.

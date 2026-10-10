@@ -9,8 +9,8 @@
   },
   "revision": 1,
   "created": "2026-10-10T20:08:46.209Z",
-  "updated": "2026-10-10T20:54:59.000Z",
-  "next": "Commit approved WS-02 code and records, merge WS-02 into ARC, then smoke-test.",
+  "updated": "2026-10-10T20:56:18.000Z",
+  "next": "Present the ARC confirm checklist and request separate approval to integrate into main.",
   "status": "in-progress",
   "branch": "arc/2026-10-10-soner-can--self-hosted-harness-safety",
   "integrationBranch": "main",
@@ -62,13 +62,13 @@ Keep this rollup aligned with WS records:
 | WS | Gate | Depends on | WS branch | Merge SHA |
 |----|------|------------|-----------|-----------|
 | [WS-01](../workstreams/WS-soner-can-01--source-init-protection.md) | MERGED | — | `ws/WS-soner-can-01--source-init-protection` | `e5fe224da80201c8ecd54051579e6704b9c936fb` |
-| [WS-02](../workstreams/WS-soner-can-02--pinned-self-hosted-arc-governance.md) | USER CONFIRM | WS-01 MERGED | `ws/WS-soner-can-02--pinned-self-hosted-arc-governance` | — |
+| [WS-02](../workstreams/WS-soner-can-02--pinned-self-hosted-arc-governance.md) | MERGED | WS-01 MERGED | `ws/WS-soner-can-02--pinned-self-hosted-arc-governance` | `88438f996bfe2286f34b70faf04b83513b22d6a5` |
 
 ## Integration checklist
 
-- [ ] Workstreams completed or explicitly deferred.
-- [ ] Arc smoke tests after each WS merge and final integration checks passed.
-- [ ] External-package init cannot overwrite the source checkout; normal
+- [x] Workstreams completed or explicitly deferred.
+- [x] Arc smoke tests after each WS merge and final integration checks passed.
+- [x] External-package init cannot overwrite the source checkout; normal
       user-project init/re-init and first ARC still work.
 - [ ] Source ARC remains governed by its starting rules through final approval;
       missing baseline or changed companion inputs fail closed.
@@ -131,3 +131,9 @@ Record dated gate changes, reviews, integration-branch syncs, and Git commit/mer
   merge, ARC integration, or push authorized.
 - 2026-10-10 · User confirmed reviewed WS-02 revision 1 after the CLI test
   handoff and authorized commit, WS→ARC merge, and ARC smoke tests only.
+- 2026-10-10 · WS-02 acceptance records committed as `911f806`; code committed
+  as `6313d9c` and merged to ARC as
+  `88438f996bfe2286f34b70faf04b83513b22d6a5`. Integrated ARC `npm test`
+  passed 25/25; extracted original-baseline CLI `check` reported 3 valid
+  records; baseline SHA is an ancestor commit and companion files match it.
+  Both workstreams are MERGED. No ARC→main merge or push.
