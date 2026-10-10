@@ -9,8 +9,8 @@
   },
   "revision": 1,
   "created": "2026-10-10T20:08:46.209Z",
-  "updated": "2026-10-10T20:34:33.000Z",
-  "next": "Commit approved WS-01 code/state, merge WS-01 into ARC, and smoke-test.",
+  "updated": "2026-10-10T20:36:27.000Z",
+  "next": "Request user approval to implement WS-02 revision 1 after its RESEARCH PASS.",
   "status": "in-progress",
   "branch": "arc/2026-10-10-soner-can--self-hosted-harness-safety",
   "integrationBranch": "main",
@@ -56,7 +56,7 @@ Keep this rollup aligned with WS records:
 
 | WS | Gate | Depends on | WS branch | Merge SHA |
 |----|------|------------|-----------|-----------|
-| [WS-01](../workstreams/WS-soner-can-01--source-init-protection.md) | USER CONFIRM | — | `ws/WS-soner-can-01--source-init-protection` | — |
+| [WS-01](../workstreams/WS-soner-can-01--source-init-protection.md) | MERGED | — | `ws/WS-soner-can-01--source-init-protection` | `e5fe224da80201c8ecd54051579e6704b9c936fb` |
 | [WS-02](../workstreams/WS-soner-can-02--pinned-self-hosted-arc-governance.md) | RESEARCH | WS-01 MERGED | — | — |
 
 ## Integration checklist
@@ -100,3 +100,9 @@ Record dated gate changes, reviews, integration-branch syncs, and Git commit/mer
 - 2026-10-10 · User explicitly approved committing reviewed WS-01 code and
   ARC/WS records, merging WS-01 into this ARC, and running ARC smoke tests.
   No ARC→main merge or push was authorized.
+- 2026-10-10 · Approved ARC/WS records committed as `f9123e4`; WS-01 code
+  committed as `726e962` and merged to ARC as
+  `e5fe224da80201c8ecd54051579e6704b9c936fb`. ARC `npm test` passed
+  15/15; baseline CLI `check` reported 3 structurally valid records.
+  Companion config, templates, and adapters still match the ARC base SHA.
+  WS-02 remains RESEARCH pending user implementation approval.

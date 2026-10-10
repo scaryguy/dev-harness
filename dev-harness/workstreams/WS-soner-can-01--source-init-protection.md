@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-10-10T20:08:51.176Z",
-  "updated": "2026-10-10T20:34:33.000Z",
-  "next": "Commit reviewed revision 1, merge WS into ARC, and smoke-test ARC.",
+  "updated": "2026-10-10T20:36:27.000Z",
+  "next": "Integrated into ARC; WS-02 awaits implementation approval.",
   "arc": "2026-10-10-soner-can--self-hosted-harness-safety",
   "sequence": 1,
-  "gate": "USER CONFIRM"
+  "gate": "MERGED"
 }
 ---
 
@@ -29,6 +29,9 @@ WS branch: `ws/WS-soner-can-01--source-init-protection` from
 `arc/2026-10-10-soner-can--self-hosted-harness-safety` @ `94cb347`.
 External worktree: `../dev-harness-worktrees/WS-soner-can-01--source-init-protection/`.
 The ARC checkout owns these records; copies in the WS worktree are not authoritative.
+Code commit: `726e962`. ARC merge:
+`e5fe224da80201c8ecd54051579e6704b9c936fb`. The WS branch and worktree
+remain in place pending separate cleanup approval.
 
 ## Scope and approach
 
@@ -57,9 +60,7 @@ defaults, or the playground project.
 
 ## Gate
 
-Current: `USER CONFIRM`. Next action: commit approved revision 1, merge WS into
-the ARC, and run its smoke tests; delegated CLI UAT passed.
-Add a modifier when relevant. RESEARCH Exited stays `—` until user authorizes IMPLEMENT.
+Current: `MERGED`. Delegated CLI UAT and ARC smoke tests passed.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
@@ -68,7 +69,8 @@ Add a modifier when relevant. RESEARCH Exited stays `—` until user authorizes 
 | REVIEW | 2026-10-10 | 2026-10-10 | CHANGES-REQUESTED |
 | IMPLEMENT | 2026-10-10 | 2026-10-10 | — |
 | REVIEW | 2026-10-10 | 2026-10-10 | PASS |
-| USER CONFIRM | 2026-10-10 | — | — |
+| USER CONFIRM | 2026-10-10 | 2026-10-10 | User approved |
+| MERGED | 2026-10-10 | — | ARC smoke PASS |
 
 ## Verification
 
@@ -101,6 +103,8 @@ Add a modifier when relevant. RESEARCH Exited stays `—` until user authorizes 
   `workstreams/` appeared under `dev-harness/`, Cursor links resolved, and
   config/knowledge markers survived re-init. No real source checkout was
   targeted by the external package.
+- After ARC merge, 2026-10-10: `npm test` 15/15 PASS; the CLI extracted from
+  ARC `baseSha` reported 3 structurally valid ARC/WS records.
 
 ## User confirm checklist
 
@@ -147,3 +151,7 @@ commits, merge SHAs, and arc smoke-test results.
   install/re-init. Awaiting explicit commit and WS→ARC merge approval.
 - 2026-10-10 · User confirmed acceptance checklist and authorized WS-01
   commit/merge to ARC plus ARC smoke test. USER CONFIRM exits at MERGED.
+- 2026-10-10 · ARC/WS state commit `f9123e4`; WS code commit `726e962`;
+  WS→ARC merge `e5fe224da80201c8ecd54051579e6704b9c936fb`. USER CONFIRM
+  exited; MERGED entered. ARC `npm test` passed 15/15 and base CLI `check`
+  reported 3 valid records. No ARC→main merge or push.
