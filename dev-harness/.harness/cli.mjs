@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, renameSync, rmdirSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, realpathSync, renameSync, rmdirSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -56,12 +56,34 @@ function exists(path) {
   try { return lstatSync(path); } catch (error) { if (error.code === 'ENOENT') return null; throw error; }
 }
 
+function isPackageSourceCheckout(target) {
+  let manifest;
+  try { manifest = JSON.parse(git(['show', 'HEAD:package.json'], target)); }
+  catch { return false; }
+  if (manifest.name !== '@scaryguy/dev-harness'
+      || manifest.bin?.['dev-harness'] !== 'dev-harness/.harness/cli.mjs') return false;
+  const required = [
+    'package.json',
+    'dev-harness/.harness/cli.mjs',
+    'dev-harness/.harness/config.json',
+    'dev-harness/.harness/skills/dev-harness/SKILL.md',
+    'dev-harness/.harness/templates/arc.md',
+    'dev-harness/.harness/adapters/cursor/agents/dev-harness-owner.md'
+  ];
+  const tracked = new Set(git(['ls-tree', '-r', '--name-only', 'HEAD', '--', ...required], target).split('\n'));
+  return required.every(path => tracked.has(path));
+}
+
 function init(target) {
   const folder = join(target, 'dev-harness');
   const runtime = join(folder, '.harness');
   if (!existsSync(target) || !lstatSync(target).isDirectory()) throw new Error('Target must be an existing repository directory.');
   if (!git(['rev-parse', '--show-toplevel'], target) || resolve(git(['rev-parse', '--show-toplevel'], target)) !== target) {
     throw new Error('Run init at the Git repository root.');
+  }
+  if (isPackageSourceCheckout(target)
+      && (!existsSync(runtime) || realpathSync(source) !== realpathSync(runtime))) {
+    throw new Error('Refusing to init a Dev Harness package source checkout from an external package. Run its own dev-harness/.harness/cli.mjs init instead.');
   }
   const current = existsSync(join(runtime, 'config.json')) ? runtime : existsSync(join(folder, 'config.json')) ? folder : null;
   if (exists(folder) && !current) throw new Error('Existing dev-harness/ is not managed by this scaffold.');

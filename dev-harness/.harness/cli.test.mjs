@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, readlinkSync, readdirSync, renameSync, rmdirSync, symlinkSync, unlinkSync, cpSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, lstatSync, readlinkSync, readdirSync, renameSync, rmdirSync, symlinkSync, unlinkSync, cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,6 +26,27 @@ function ok(result) {
 
 function metadata(path) {
   return JSON.parse(readFileSync(path, 'utf8').match(/^---\n([\s\S]*?)\n---/)[1]);
+}
+
+function snapshotTree(root) {
+  const snapshot = [];
+  function visit(folder, prefix = '') {
+    for (const name of readdirSync(folder).sort()) {
+      const relativePath = prefix ? `${prefix}/${name}` : name;
+      const path = join(folder, name);
+      const stat = lstatSync(path);
+      if (stat.isDirectory()) {
+        snapshot.push([relativePath, 'directory']);
+        visit(path, relativePath);
+      } else if (stat.isSymbolicLink()) {
+        snapshot.push([relativePath, 'symlink', readlinkSync(path)]);
+      } else {
+        snapshot.push([relativePath, 'file', createHash('sha256').update(readFileSync(path)).digest('hex')]);
+      }
+    }
+  }
+  visit(root);
+  return snapshot;
 }
 
 function integrateArc(root, arc) {
@@ -115,6 +137,33 @@ test('npm package installs through npx without a checkout or project dependency'
   assert.ok(!files.includes('dev-harness/.harness/cli.test.mjs'));
   const root = fixture();
   const tarball = join(output, manifest.filename);
+  const sourceClone = join(output, 'source-clone');
+  execFileSync('git', ['clone', '-q', '--no-local', packageRoot, sourceClone]);
+  function assertSourceRefused() {
+    const before = snapshotTree(sourceClone);
+    const refused = spawnSync('npx', ['--yes', '--offline', `--package=${tarball}`, 'dev-harness', 'init'],
+      { cwd: sourceClone, env, encoding: 'utf8' });
+    assert.notEqual(refused.status, 0);
+    assert.match(refused.stderr, /Refusing to init a Dev Harness package source checkout from an external package/);
+    assert.deepEqual(snapshotTree(sourceClone), before);
+  }
+  assertSourceRefused();
+  const packagePath = join(sourceClone, 'package.json');
+  const originalPackage = readFileSync(packagePath, 'utf8');
+  const editedPackage = JSON.parse(originalPackage);
+  editedPackage.name = 'temporarily-renamed-package';
+  writeFileSync(packagePath, JSON.stringify(editedPackage));
+  assertSourceRefused();
+  writeFileSync(packagePath, '{ malformed package manifest\n');
+  assertSourceRefused();
+  writeFileSync(packagePath, originalPackage);
+  execFileSync('git', ['rm', '--cached', '-q', '--', 'dev-harness/.harness/templates/arc.md'], { cwd: sourceClone });
+  assertSourceRefused();
+  const localCli = join(sourceClone, 'dev-harness', '.harness', 'cli.mjs');
+  cpSync(cli, localCli);
+  ok(spawnSync(process.execPath, [localCli, 'init'],
+    { cwd: sourceClone, encoding: 'utf8' }));
+
   ok(spawnSync('npx', ['--yes', '--offline', `--package=${tarball}`, 'dev-harness', 'init'], { cwd: root, env, encoding: 'utf8' }));
   assert.ok(existsSync(join(root, 'dev-harness', '.harness', 'knowledge', 'context.md')));
   assert.ok(existsSync(join(root, 'dev-harness', '.harness', '.gitignore')));
@@ -125,7 +174,22 @@ test('npm package installs through npx without a checkout or project dependency'
   const installed = join(root, 'dev-harness', '.harness', 'cli.mjs');
   assert.match(ok(spawnSync(process.execPath, [installed, 'status'], { cwd: root, encoding: 'utf8' })), /Alex Developer/);
   assert.match(ok(spawnSync(process.execPath, [installed, 'check'], { cwd: root, encoding: 'utf8' })), /Valid: 0 records/);
+  const arc = ok(spawnSync(process.execPath, [installed, 'new', 'arc', 'Existing work'], { cwd: root, encoding: 'utf8' }));
+  const ws = ok(spawnSync(process.execPath, [installed, 'new', 'workstream', arc, 'Existing slice'], { cwd: root, encoding: 'utf8' }));
+  const configPath = join(root, 'dev-harness', '.harness', 'config.json');
+  const settings = JSON.parse(readFileSync(configPath, 'utf8'));
+  settings.git.integrationBranch = 'develop';
+  writeFileSync(configPath, JSON.stringify(settings));
+  const knowledgePath = join(root, 'dev-harness', '.harness', 'knowledge', 'context.md');
+  writeFileSync(knowledgePath, 'Project-specific knowledge.\n');
+  const agentsPath = join(root, 'AGENTS.md');
+  writeFileSync(agentsPath, `${readFileSync(agentsPath, 'utf8')}\n# Unrelated instructions\nKeep these.\n`);
+  const preserved = [configPath, knowledgePath, agentsPath,
+    join(root, 'dev-harness', 'arcs', `${arc}.md`), join(root, 'dev-harness', 'workstreams', `${ws}.md`)];
+  const before = preserved.map(path => readFileSync(path, 'utf8'));
   ok(spawnSync('npx', ['--yes', '--offline', `--package=${tarball}`, 'dev-harness'], { cwd: root, env, encoding: 'utf8' }));
+  assert.deepEqual(preserved.map(path => readFileSync(path, 'utf8')), before);
+  assert.match(ok(spawnSync(process.execPath, [installed, 'check'], { cwd: root, encoding: 'utf8' })), /Valid: 2 records/);
 });
 
 function legacyFixture() {
