@@ -294,6 +294,15 @@ shared records and configuration remain validated. Unqualified status shows all
 installed configured orchestrator models and shared records once.
 For Cursor, startup context is `--platform cursor`; planner, reviewer, and owner
 use `.cursor/agents/dev-harness-{planner,reviewer,owner}.md`. Launch them in the background.
+For Codex CLI, follow this only when startup context is explicit `--platform codex`.
+Spawn `dev-harness-planner`, `dev-harness-reviewer`, and `dev-harness-owner` by
+those names, with no alternate model or effort. Use in-session `/subagents` for
+background work. Non-interactive runs use `codex exec` with the configured
+orchestrator model and effort. The parent label must show the model and effort
+from that role's `.codex/agents` file; if it does not, stop that role. Do not
+use owner self-review. Isolate owner work with harness git worktrees, not
+`codex --worktree`. If root `AGENTS.override.md` hides the shared Dev Harness
+block, stop and report it; do not delete the override.
 Other adapters supply their own native startup and delegation guidance through
 the integration contract. Structural capabilities do not establish observed native
 support. If required models, reviewers, or capabilities are unavailable, stop the

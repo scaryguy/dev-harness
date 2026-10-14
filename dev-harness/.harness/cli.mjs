@@ -143,6 +143,12 @@ function init(target, requested = []) {
   const starts = previous.split(markerStart).length - 1;
   const ends = previous.split(markerEnd).length - 1;
   if (starts !== ends || starts > 1 || (starts && previous.indexOf(markerEnd) < previous.indexOf(markerStart))) throw new Error('Incomplete or malformed Dev Harness block in AGENTS.md.');
+  integrations.assertCapabilities(settings.installedPlatforms);
+  for (const id of settings.installedPlatforms) {
+    const adapter = integrations.lookup(id);
+    if (typeof adapter.assertReady === 'function') adapter.assertReady();
+  }
+  integrations.preflightNatives(target, plan);
   if (!current) {
     mkdirSync(runtime, { recursive: true });
     for (const item of ['config.json', 'cli.mjs', 'templates', 'skills', 'adapters', 'integrations']) {
@@ -165,6 +171,10 @@ function init(target, requested = []) {
   const configPath = join(runtime, 'config.json');
   if (JSON.stringify(rawConfig(runtime)) !== JSON.stringify(plannedConfig)) writeFileSync(configPath, `${JSON.stringify(plannedConfig, null, 2)}\n`);
   for (const file of plan.files) {
+    mkdirSync(dirname(join(target, file.path)), { recursive: true });
+    writeFileSync(join(target, file.path), file.content);
+  }
+  for (const file of plan.nativeFiles) {
     mkdirSync(dirname(join(target, file.path)), { recursive: true });
     writeFileSync(join(target, file.path), file.content);
   }
@@ -262,9 +272,11 @@ function createRecord(kind, arc, title) {
     if (branch !== target) {
       if (branch !== config().git.integrationBranch) throw new Error(`Start a new arc from ${config().git.integrationBranch}, or resume ${target}.`);
       const changes = git(['status', '--porcelain', '--untracked-files=all']).split('\n').filter(Boolean);
+      const plan = artifactPlan();
       const unrelated = changes.map(line => line.slice(3)).filter(path => !(
         path === 'AGENTS.md' || path.startsWith('dev-harness/')
-        || artifactPlan().links.some(link => link.path === path)
+        || plan.links.some(link => link.path === path)
+        || plan.nativeFiles.some(file => file.path === path)
       ) || /^dev-harness\/(arcs|workstreams)\/.*\.md$/.test(path));
       if (unrelated.length) throw new Error(`Cannot switch to ${target} with unrelated changes: ${unrelated.join(', ')}`);
       const exists = git(['branch', '--list', '--format=%(refname:short)', target]) === target;
