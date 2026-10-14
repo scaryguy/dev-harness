@@ -9,8 +9,8 @@
   },
   "revision": 1,
   "created": "2026-10-14T04:41:28.335Z",
-  "updated": "2026-10-14T05:02:27.910Z",
-  "next": "Codex CLI scope/defaults locked; await WS-03 MERGED and review CLI artifacts/UAT before IMPLEMENT.",
+  "updated": "2026-10-14T06:26:17.770Z",
+  "next": "WS-03 MERGED and verified; review Codex CLI artifacts/version/UAT scope and obtain revision 1 IMPLEMENT approval.",
   "arc": "2026-10-13-soner-can--modular-coding-agent-support",
   "sequence": 4,
   "gate": "RESEARCH",
@@ -46,6 +46,12 @@
       "model": "gpt-6.1-sol",
       "effort": "low"
     }
+  },
+  "dependencyVerification": {
+    "workstream": "WS-soner-can-03--modular-adapter-foundation",
+    "mergeCommit": "6394b4807544b20842aba6748bdbe86ca36a6018",
+    "date": "2026-10-14T06:26:17.770Z",
+    "smoke": "36/36 PASS"
   }
 }
 ---
@@ -181,7 +187,7 @@ PASS or per-WS RESEARCH PASS is asserted.
 ## Gate
 
 Current: `RESEARCH`. Revision: 1. Review pending; implementation not authorized.
-Next: Codex CLI scope/defaults locked; await WS-03 MERGED and review CLI artifacts/UAT before IMPLEMENT.
+Next: WS-03 MERGED and verified; review Codex CLI artifacts/version/UAT scope and obtain revision 1 IMPLEMENT approval.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
@@ -251,3 +257,5 @@ from the actual WS worktree before asking for acceptance of the reviewed revisio
 - 2026-10-14T04:44:13.671Z · Orchestrator · Drafted revision 1 scope, dependencies, detailed owner guidance, and user-requested agent assignments. RESEARCH review pending; no implementation.
 
 - 2026-10-14T04:50:49.728Z · Orchestrator · Recorded user decisions: coexistence, Codex CLI-only, explicit additive installation, and installed Codex per-role model/effort defaults. Draft remains unreviewed in RESEARCH; no IMPLEMENT authorization.
+
+- 2026-10-14T06:26:17.770Z · Orchestrator · WS-03 prerequisite satisfied at ARC merge 6394b4807544b20842aba6748bdbe86ca36a6018, smoke36/36 PASS. This WS remains RESEARCH; no per-WS research review or IMPLEMENT approval yet.

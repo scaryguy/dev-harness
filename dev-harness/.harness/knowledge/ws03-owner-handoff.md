@@ -222,4 +222,3 @@ Report exact worktree/starting SHA/revision; files and behavior changed;
 commands actually run and results; remaining concerns; executable disposable
 Cursor install/re-init/status/check UAT commands with expected outcomes.
 No server applies. Leave code unstaged for independent High review and user UAT.
-

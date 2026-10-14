@@ -9,11 +9,11 @@
   },
   "revision": 2,
   "created": "2026-10-14T04:41:24.136Z",
-  "updated": "2026-10-14T06:19:42.740Z",
-  "next": "Commit accepted code/ARC/WS records, merge WS-03 into ARC, and run integrated smoke/original-baseline checks.",
+  "updated": "2026-10-14T06:26:17.770Z",
+  "next": "Integrated into ARC with smoke PASS; WS-04 Codex CLI scope/review and IMPLEMENT approval are next.",
   "arc": "2026-10-13-soner-can--modular-coding-agent-support",
   "sequence": 3,
-  "gate": "USER CONFIRM",
+  "gate": "MERGED",
   "dependencies": [],
   "agentModels": {
     "orchestrator": "gpt-6.1-sol[effort=high]",
@@ -62,7 +62,7 @@
     "scope": "WS-03 IMPLEMENT only",
     "evidence": "start 03"
   },
-  "implementationState": "reviewed",
+  "implementationState": "integrated",
   "checkout": {
     "branch": "ws/WS-soner-can-03--modular-adapter-foundation",
     "parentBranch": "arc/2026-10-13-soner-can--modular-coding-agent-support",
@@ -124,6 +124,17 @@
     "date": "2026-10-14T06:19:42.740Z",
     "evidence": "ok merge",
     "scope": "Accept reviewed revision 2 and authorize code/ARC/WS record commits, WS-to-ARC merge, and ARC smoke checks. No ARC-to-main merge, push, or worktree cleanup."
+  },
+  "integration": {
+    "codeCommit": "8629ababdf9949b797b2d1c1b143da0446e0f2e7",
+    "acceptanceRecordsCommit": "df5c69eb02a589c9fa9b062b79f788b6f7822a3f",
+    "mergeCommit": "6394b4807544b20842aba6748bdbe86ca36a6018",
+    "targetBranch": "arc/2026-10-13-soner-can--modular-coding-agent-support",
+    "date": "2026-10-14T06:26:17.770Z",
+    "npmTest": "36/36 PASS",
+    "testDurationMs": 257760.945625,
+    "baselineCheck": "7 structurally valid records; original independently extracted baseline",
+    "frozenCompanions": "unchanged"
   }
 }
 ---
@@ -135,6 +146,11 @@
 [Modular coding agent support](../arcs/2026-10-13-soner-can--modular-coding-agent-support.md)
 
 ## Checkout
+
+Code commit: `8629ababdf9949b797b2d1c1b143da0446e0f2e7`.
+Accepted ARC/WS records: `df5c69eb02a589c9fa9b062b79f788b6f7822a3f`.
+WS-to-ARC merge: `6394b4807544b20842aba6748bdbe86ca36a6018`.
+Branch/worktree retained; cleanup not authorized.
 
 WS branch: `ws/WS-soner-can-03--modular-adapter-foundation`.
 Parent: `arc/2026-10-13-soner-can--modular-coding-agent-support` at
@@ -450,9 +466,10 @@ model verification or native UAT is claimed.
 
 ## Gate
 
-Current: `USER CONFIRM`. Revision: 2. Independent High code re-review PASS;
-36/36 tests independently passed. Changes remain unstaged in the WS worktree,
-ready for user testing. No native runtime/model or acceptance is claimed.
+Current: `MERGED`. Revision: 2. User accepted reviewed CLI evidence and
+authorized code/record commits and WS-to-ARC merge. Integrated ARC npm test
+36/36 PASS; original-baseline structural check PASS. Native Cursor/model
+verification remains outside the evidence recorded here.
 Next: User tests reviewed revision 2 from WS worktree or chooses delegated CLI UAT/waiver; then separate acceptance and commit/WS-to-ARC approval.
 
 | Gate | Entered | Exited | Outcome |
@@ -462,7 +479,8 @@ Next: User tests reviewed revision 2 from WS worktree or chooses delegated CLI U
 | REVIEW | 2026-10-13 | 2026-10-13 | CHANGES-REQUESTED |
 | IMPLEMENT | 2026-10-13 | 2026-10-13 | review fixes ready |
 | REVIEW | 2026-10-13 | 2026-10-13 | PASS |
-| USER CONFIRM | 2026-10-13 | — | testing offered |
+| USER CONFIRM | 2026-10-13 | 2026-10-13 | user accepted revision 2 |
+| MERGED | 2026-10-13 | — | ARC smoke PASS |
 
 ## Baseline compatibility research
 
@@ -496,6 +514,11 @@ The planner is preparing the contract against these constraints; no exemption or
 candidate-governed approval is proposed.
 
 ## Verification
+
+Post-merge ARC verification, 2026-10-14T06:26:17.770Z: npm test 36/36 PASS
+(~257.8s), original independently extracted baseline check seven valid records,
+and config/templates/adapters unchanged against full base SHA. Code/records
+committed and WS merged into ARC; no ARC-to-main merge or push.
 
 Orchestrator final merge-readiness CLI smoke, 2026-10-14T06:17:47.932Z: PASS in an OS
 temporary disposable repository. Explicit install, installed-CLI refresh, opaque
@@ -667,3 +690,5 @@ from the actual WS worktree before asking for acceptance of the reviewed revisio
 - 2026-10-14T06:17:47.932Z · Orchestrator · Final disposable CLI merge-readiness smoke PASS; source baseline structural check PASS. USER CONFIRM remains pending explicit acceptance/commit/WS-to-ARC authorization. No code or Git integration changed.
 
 - 2026-10-14T06:19:42.740Z · User/Orchestrator · User "ok merge" accepted reviewed revision 2 and approved code/record commits, WS-to-ARC merge and smoke checks. USER CONFIRM remains until actual merge; no ARC/main/push/cleanup approval.
+
+- 2026-10-14T06:26:17.770Z · Orchestrator · Accepted records committed df5c69eb02a589c9fa9b062b79f788b6f7822a3f; reviewed code committed 8629ababdf9949b797b2d1c1b143da0446e0f2e7; WS-to-ARC merge 6394b4807544b20842aba6748bdbe86ca36a6018. Integrated ARC npm test 36/36 PASS, original-baseline check seven valid records, frozen companions unchanged. USER CONFIRM exited; MERGED entered. No main merge/push/cleanup.

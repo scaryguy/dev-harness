@@ -9,8 +9,8 @@
   },
   "revision": 2,
   "created": "2026-10-14T04:37:05.516Z",
-  "updated": "2026-10-14T06:19:42.740Z",
-  "next": "Commit reviewed WS-03 and ARC records, merge WS-03 into ARC, and run smoke checks; WS-04/05 remain RESEARCH.",
+  "updated": "2026-10-14T06:26:17.770Z",
+  "next": "Define/review WS-04 Codex CLI adapter revision 1 and request IMPLEMENT approval; WS-03 MERGED and verified, WS-05 waits WS-04.",
   "status": "in-progress",
   "branch": "arc/2026-10-13-soner-can--modular-coding-agent-support",
   "integrationBranch": "main",
@@ -148,7 +148,7 @@ remain RESEARCH with no branch/worktree yet.
 
 | WS | Gate | Depends on | WS branch | Merge SHA |
 |----|------|------------|-----------|-----------|
-| [WS-03](../workstreams/WS-soner-can-03--modular-adapter-foundation.md) | USER CONFIRM | — | `ws/WS-soner-can-03--modular-adapter-foundation` | — |
+| [WS-03](../workstreams/WS-soner-can-03--modular-adapter-foundation.md) | MERGED | — | `ws/WS-soner-can-03--modular-adapter-foundation` | `6394b4807544b20842aba6748bdbe86ca36a6018` |
 | [WS-04](../workstreams/WS-soner-can-04--codex-platform-support.md) | RESEARCH | WS-03 MERGED | Planned; not created | — |
 | [WS-05](../workstreams/WS-soner-can-05--claude-code-platform-support.md) | RESEARCH | WS-04 MERGED and verified | Planned; not created | — |
 
@@ -197,3 +197,5 @@ remain RESEARCH with no branch/worktree yet.
 - 2026-10-14T06:17:47.932Z · Orchestrator · WS-03 final disposable CLI readiness smoke PASS. No user acceptance, commit, or merge authorization inferred from readiness question; USER CONFIRM remains open.
 
 - 2026-10-14T06:19:42.740Z · User/Orchestrator · WS-03 revision 2 acceptance and commit/WS-to-ARC merge approval recorded. Draft WS-04/05 and parent ARC records persist as part of the accepted record set; their gates/approval remain unchanged.
+
+- 2026-10-14T06:26:17.770Z · Orchestrator · Accepted ARC/WS records df5c69eb02a589c9fa9b062b79f788b6f7822a3f; WS-03 code 8629ababdf9949b797b2d1c1b143da0446e0f2e7; WS-to-ARC merge 6394b4807544b20842aba6748bdbe86ca36a6018. Integrated ARC 36/36 tests PASS, original-baseline structural check seven records PASS, frozen companions unchanged. WS-03 MERGED; WS-04/05 remain RESEARCH. No main merge/push/cleanup.
