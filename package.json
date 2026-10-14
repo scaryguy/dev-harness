@@ -11,7 +11,8 @@
     "dev-harness/.harness/config.json",
     "dev-harness/.harness/templates/",
     "dev-harness/.harness/skills/",
-    "dev-harness/.harness/adapters/"
+    "dev-harness/.harness/adapters/",
+    "dev-harness/.harness/integrations/"
   ],
   "engines": {
     "node": ">=20"

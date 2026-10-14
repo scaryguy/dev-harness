@@ -161,6 +161,7 @@ test('npm package installs through npx without a checkout or project dependency'
   assertSourceRefused();
   const localCli = join(sourceClone, 'dev-harness', '.harness', 'cli.mjs');
   cpSync(cli, localCli);
+  cpSync(join(dirname(cli), 'integrations'), join(dirname(localCli), 'integrations'), { recursive: true });
   ok(spawnSync(process.execPath, [localCli, 'init'],
     { cwd: sourceClone, encoding: 'utf8' }));
 
@@ -413,8 +414,8 @@ function sourceFixture(changeBaseline = () => {}) {
   cpSync(join(dirname(dirname(dirname(cli))), 'package.json'), join(root, 'package.json'));
   const localCli = join(root, 'dev-harness', '.harness', 'cli.mjs');
   const skill = join(root, 'dev-harness', '.harness', 'skills', 'dev-harness', 'SKILL.md');
-  const baselineCli = readFileSync(localCli, 'utf8').replace('function status() {',
-    'function status() { console.log("BASELINE STATUS"); console.log("RUNTIME " + source); console.log("CWD " + root);')
+  const baselineCli = readFileSync(localCli, 'utf8').replace('function status(ids = []) {',
+    'function status(ids = []) { console.log("BASELINE STATUS"); console.log("RUNTIME " + source); console.log("CWD " + root);')
     .replace('console.log(`Valid:', 'console.log("BASELINE CHECK"); console.log(`Valid:');
   const baselineSkill = `${readFileSync(skill, 'utf8')}\nBASELINE SKILL\n`;
   writeFileSync(localCli, baselineCli);
@@ -629,4 +630,195 @@ test('documented independent bootstrap uses committed dispatcher when candidate 
   assert.notEqual(independent('init').status, 0);
   setMetadata(source.arcPath, { baseSha: source.base.slice(0, 7) });
   assert.notEqual(independent('check').status, 0, 'independent extraction rejects malformed SHA before any dispatcher');
+});
+
+test('explicit Cursor migration preserves opaque config and local data; selectors never rewrite', () => {
+  const root = fixture(); ok(run(root, 'init'));
+  const runtime = join(root, 'dev-harness/.harness');
+  const path = join(runtime, 'config.json');
+  const original = JSON.parse(readFileSync(path));
+  original.models.extension = { custom: true }; original.custom = ['opaque'];
+  original.models.subagents = 'custom-model[effort=opaque]';
+  writeFileSync(path, JSON.stringify(original));
+  for (const folder of ['state', 'local', 'cache', 'knowledge']) { mkdirSync(join(runtime, folder), { recursive: true }); writeFileSync(join(runtime, folder, 'preserve'), folder); }
+  ok(run(root, 'init', '--platform', 'cursor', '--platform', 'cursor'));
+  const migrated = JSON.parse(readFileSync(path));
+  assert.equal(migrated.version, 2); assert.deepEqual(migrated.models, original.models);
+  assert.deepEqual(migrated.custom, original.custom); assert.deepEqual(migrated.installedPlatforms, ['cursor']);
+  assert.equal(migrated.adapters.cursor.models.owner.model, original.models.subagents);
+  const before = snapshotTree(root);
+  ok(run(root, 'status', '--platform', 'cursor')); ok(run(root, 'check', '--platform', 'cursor'));
+  assert.deepEqual(snapshotTree(root), before);
+  ok(run(root, 'init'));
+  for (const folder of ['state', 'local', 'cache', 'knowledge']) assert.equal(readFileSync(join(runtime, folder, 'preserve'), 'utf8'), folder);
+});
+
+test('flags, config collisions, malformed blocks and unsafe parents refuse before writes', () => {
+  for (const args of [['init', '--platform'], ['init', '--platform', 'unknown'], ['init', '--bogus'], ['status', '--platform', 'cursor', '--platform', 'cursor'], ['check', '--bogus']]) {
+    const root = fixture(); const before = snapshotTree(root);
+    assert.notEqual(run(root, ...args).status, 0); assert.deepEqual(snapshotTree(root), before);
+  }
+  for (const mutation of [root => writeFileSync(join(root, 'AGENTS.md'), '<!-- dev-harness:end -->\n<!-- dev-harness:start -->'), root => { const other = mkdtempSync(join(tmpdir(), 'unsafe-parent-')); symlinkSync(other, join(root, '.cursor')); }, root => { ok(run(root, 'init')); const path = join(root, 'dev-harness/.harness/config.json'); const value = JSON.parse(readFileSync(path)); value.adapters = { extension: true }; writeFileSync(path, JSON.stringify(value)); }]) {
+    const root = fixture(); mutation(root); const before = snapshotTree(root);
+    assert.notEqual(run(root, 'init', '--platform', 'cursor').status, 0); assert.deepEqual(snapshotTree(root), before);
+  }
+});
+
+function modularFixture() {
+  const root = fixture();
+  const runtime = mkdtempSync(join(tmpdir(), 'dev-harness-modular-runtime-'));
+  cpSync(dirname(cli), runtime, { recursive: true });
+  const dummy = `import { readFileSync } from 'node:fs';\nimport { join } from 'node:path';\nexport default { id:'dummy', label:'Dummy', defaults:{orchestrator:{model:'dummy-high'},planner:{model:'dummy-high'},reviewer:{model:'dummy-high'},owner:{model:'dummy-low'}}, capabilities:{}, validateSettings(s){if(!s?.models?.orchestrator?.model)throw Error('Invalid dummy')}, planArtifacts(){return {files:[{path:'dev-harness/.harness/dummy.md',content:'dummy',ownership:'builtin'}],links:[{path:'.dummy/entry',target:'dev-harness/.harness/dummy.md',type:'file',legacyTargets:[]}]}},checkArtifacts(c){if(readFileSync(join(c.targetRoot,'.dummy/entry'),'utf8')!=='dummy')throw Error('Bad dummy')},startupGuidance(){return 'Dummy ready --platform dummy'}};`;
+  writeFileSync(join(runtime, 'integrations/dummy.mjs'), dummy);
+  const registry = join(runtime, 'integrations/registry.mjs');
+  writeFileSync(registry, readFileSync(registry, 'utf8').replace("import cursor from './cursor.mjs';", "import cursor from './cursor.mjs';\nimport dummy from './dummy.mjs';").replace('[cursor]', '[cursor, dummy]'));
+  return { root, runtime, execute: (...args) => spawnSync(process.execPath, [join(runtime, 'cli.mjs'), ...args], { cwd: root, encoding: 'utf8' }) };
+}
+
+test('fixture-only adapter installs alone, adds Cursor, displays all models and shares records', () => {
+  const { root, execute } = modularFixture();
+  ok(execute('init', '--platform', 'dummy'));
+  assert.equal(existsSync(join(root, '.cursor')), false);
+  const before = snapshotTree(root);
+  assert.notEqual(execute('check', '--platform', 'cursor').status, 0);
+  assert.deepEqual(snapshotTree(root), before);
+  ok(execute('init', '--platform', 'cursor', '--platform', 'dummy'));
+  const path = join(root, 'dev-harness/.harness/config.json');
+  const settings = JSON.parse(readFileSync(path)); settings.adapters.opaque = { keep: true }; writeFileSync(path, JSON.stringify(settings));
+  ok(execute('init')); assert.deepEqual(JSON.parse(readFileSync(path)).adapters.opaque, { keep: true });
+  const arc = ok(execute('new', 'arc', 'Shared record'));
+  const status = ok(execute('status'));
+  assert.match(status, /Dummy · Orchestrator: dummy-high \(configured\)/);
+  assert.match(status, /Cursor · Orchestrator:/); assert.equal(status.split('\n').filter(line => line.includes(` · ${arc} · `)).length, 1);
+  ok(execute('check', '--platform', 'dummy'));
+  const record = join(root, 'dev-harness/arcs', `${arc}.md`);
+  writeFileSync(record, 'bad'); assert.notEqual(execute('check', '--platform', 'dummy').status, 0);
+});
+
+test('aggregate adapter collisions and unsafe declarations refuse a whole install', () => {
+  for (const change of [text => text.replace("path:'.dummy/entry'", "path:'.cursor/skills/dev-harness'"), text => text.replace("path:'.dummy/entry'", "path:'../escape'"), text => text.replace("path:'.dummy/entry'", "path:'dev-harness/.harness/config.json'"), text => text.replaceAll('dev-harness/.harness/dummy.md', 'dev-harness/.harness/state/preserve'), text => text.replaceAll('dev-harness/.harness/dummy.md', 'dev-harness/.harness/knowledge/context.md')]) {
+    const { root, runtime, execute } = modularFixture();
+    const path = join(runtime, 'integrations/dummy.mjs'); writeFileSync(path, change(readFileSync(path, 'utf8')));
+    const before = snapshotTree(root); assert.notEqual(execute('init', '--platform', 'cursor', '--platform', 'dummy').status, 0); assert.deepEqual(snapshotTree(root), before);
+  }
+});
+
+test('future standalone bootstrap extracts only committed modules despite live tampering', () => {
+  const source = sourceFixture();
+  const extracted = join(mkdtempSync(join(tmpdir(), 'standalone-baseline-')), 'cli.mjs');
+  writeFileSync(extracted, execFileSync('git', ['show', `${source.base}:dev-harness/.harness/cli.mjs`], { cwd: source.root }));
+  const integration = join(source.root, 'dev-harness/.harness/integrations');
+  writeFileSync(join(integration, 'registry.mjs'), 'throw Error("CANDIDATE EXECUTED");');
+  writeFileSync(join(integration, 'extra.mjs'), 'throw Error("EXTRA EXECUTED");');
+  const result = spawnSync(process.execPath, [extracted, 'pinned', 'status'], { cwd: source.root, encoding: 'utf8' });
+  assert.match(ok(result), /BASELINE STATUS/); assert.doesNotMatch(result.stderr, /EXECUTED/);
+});
+
+test('future committed missing, nonregular, and escaping dependencies fail closed', () => {
+  const mutations = [
+    root => unlinkSync(join(root, 'dev-harness/.harness/integrations/cursor.mjs')),
+    root => { const path = join(root, 'dev-harness/.harness/integrations/install.mjs'); unlinkSync(path); symlinkSync('cursor.mjs', path); },
+    root => { const path = join(root, 'dev-harness/.harness/integrations/registry.mjs'); writeFileSync(path, readFileSync(path, 'utf8') + "\nimport '../candidate.mjs';\n"); }
+  ];
+  for (const mutate of mutations) {
+    // Build a valid source fixture first, then commit a malformed future base;
+    // leave current runtime valid so no candidate code supplies its dependencies.
+    const source = sourceFixture();
+    const modules = join(source.root, 'dev-harness/.harness/integrations');
+    const backup = mkdtempSync(join(tmpdir(), 'module-backup-')); cpSync(modules, backup, { recursive: true });
+    mutate(source.root);
+    execFileSync('git', ['add', '-A'], { cwd: source.root }); execFileSync('git', ['commit', '-qm', 'Malformed future base'], { cwd: source.root });
+    const baseSha = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: source.root, encoding: 'utf8' }).trim();
+    rmSync(modules, { recursive: true }); cpSync(backup, modules, { recursive: true }); setMetadata(source.arcPath, { baseSha });
+    const before = snapshotTree(source.root); assert.notEqual(pinnedRun(source, 'check').status, 0); assert.deepEqual(snapshotTree(source.root), before);
+  }
+});
+
+test('v1 ordinary reads preserve config bytes and selected checks validate shared config', () => {
+  const root = fixture(); ok(run(root, 'init'));
+  const path = join(root, 'dev-harness/.harness/config.json'); const bytes = readFileSync(path);
+  ok(run(root, 'status')); ok(run(root, 'check')); assert.deepEqual(readFileSync(path), bytes);
+  const value = JSON.parse(bytes); value.checks = [1]; writeFileSync(path, JSON.stringify(value));
+  const before = snapshotTree(root); assert.notEqual(run(root, 'check', '--platform', 'cursor').status, 0); assert.deepEqual(snapshotTree(root), before);
+});
+
+test('wrong runtime directory types and unsafe config leaves refuse before refresh', () => {
+  for (const name of ['templates', 'skills', 'adapters', 'integrations']) {
+    const root = fixture(); ok(run(root, 'init'));
+    const path = join(root, 'dev-harness/.harness', name); rmSync(path, { recursive: true }); writeFileSync(path, 'occupied');
+    const before = snapshotTree(root); assert.notEqual(run(root, 'init').status, 0); assert.deepEqual(snapshotTree(root), before);
+  }
+  const root = fixture(); ok(run(root, 'init'));
+  const path = join(root, 'dev-harness/.harness/config.json'); const other = join(mkdtempSync(join(tmpdir(), 'config-leaf-')), 'config.json'); renameSync(path, other); symlinkSync(other, path);
+  const before = snapshotTree(root); assert.notEqual(run(root, 'init').status, 0); assert.deepEqual(snapshotTree(root), before);
+});
+
+test('nested refresh type conflicts preserve stale CLI and the whole target in both layouts', () => {
+  for (const legacy of [false, true]) {
+    for (const [name, type] of [['templates/workstream.md', 'dir'], ['skills/dev-harness', 'file'], ['integrations/registry.mjs', 'dir'], ['adapters/cursor/agents', 'file']]) {
+      const root = fixture(); ok(run(root, 'init'));
+      const runtime = join(root, 'dev-harness/.harness');
+      writeFileSync(join(runtime, 'cli.mjs'), 'STALE CLI SENTINEL');
+      const path = join(runtime, name); rmSync(path, { recursive: true });
+      if (type === 'dir') mkdirSync(path); else writeFileSync(path, 'occupied');
+      if (legacy) {
+        for (const item of readdirSync(runtime)) renameSync(join(runtime, item), join(root, 'dev-harness', item));
+        rmdirSync(runtime);
+      }
+      const before = snapshotTree(root);
+      assert.notEqual(run(root, 'init').status, 0);
+      assert.deepEqual(snapshotTree(root), before);
+      assert.equal(readFileSync(join(root, legacy ? 'dev-harness/cli.mjs' : 'dev-harness/.harness/cli.mjs'), 'utf8'), 'STALE CLI SENTINEL');
+    }
+  }
+});
+
+function dependencyFixture(code) {
+  const source = sourceFixture();
+  const path = join(source.root, 'dev-harness/.harness/integrations/registry.mjs');
+  writeFileSync(path, readFileSync(path, 'utf8') + '\n' + code);
+  execFileSync('git', ['add', '-A'], { cwd: source.root });
+  execFileSync('git', ['commit', '-qm', 'Dependency syntax baseline'], { cwd: source.root });
+  setMetadata(source.arcPath, { baseSha: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: source.root, encoding: 'utf8' }).trim() });
+  return source;
+}
+
+test('restricted dependency grammar rejects commented, escaped, template and export escapes before execution', () => {
+  const outside = mkdtempSync(join(tmpdir(), 'dependency-sentinel-'));
+  const module = join(outside, 'outside.mjs'); const marker = join(outside, 'executed');
+  writeFileSync(module, "import {writeFileSync} from 'node:fs';\nwriteFileSync(" + JSON.stringify(marker) + ", 'executed');\nexport default null;\n");
+  const quoted = JSON.stringify(module);
+  const probes = [
+    'import /* dependency */ ' + quoted + ';',
+    'import /* dependency */ (' + quoted + ');',
+    'const forbidden = `template ${import(' + quoted + ')}`;',
+    'import "\\u002f' + module.slice(1) + '";',
+    'export { default as outside } /* dependency */ from ' + quoted + ';',
+    "import 'node:not_a_real_builtin';"
+  ];
+  for (const code of probes) {
+    const source = dependencyFixture(code); const before = snapshotTree(source.root);
+    assert.notEqual(pinnedRun(source, 'status').status, 0, code);
+    assert.equal(existsSync(marker), false, code);
+    assert.deepEqual(snapshotTree(source.root), before);
+  }
+});
+
+test('restricted dependency grammar accepts commented static imports, exports and inert import text', () => {
+  const source = dependencyFixture(`
+// import('/outside.mjs'); export * from '/outside.mjs';
+/* import '/outside.mjs'; */
+const inert = "import('/outside.mjs');";
+const escapedString = 'quote\\\' import /outside';
+import /* comments */ cursorAlias /* binding */ from /* source */ './cursor.mjs';
+import /* namespace */ * as configNamespace from './config.mjs';
+import { normalize as alias, planConfig, } from './config.mjs';
+import /* side effect */ './install.mjs';
+export { alias as normalized };
+export { default as cursorAgain } /* comments */ from './cursor.mjs';
+export * /* comments */ from './config.mjs';
+export * as configAgain from './config.mjs';
+export async function example() { return inert; }
+`);
+  assert.match(ok(pinnedRun(source, 'status')), /BASELINE STATUS/);
 });
