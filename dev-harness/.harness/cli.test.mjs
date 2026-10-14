@@ -4,7 +4,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, lstatSync, readlinkSync, readdirSync, realpathSync, renameSync, rmSync, rmdirSync, symlinkSync, unlinkSync, cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, relative } from 'node:path';
+import { delimiter, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const cli = join(dirname(fileURLToPath(import.meta.url)), 'cli.mjs');
@@ -668,10 +668,10 @@ function modularFixture() {
   const root = fixture();
   const runtime = mkdtempSync(join(tmpdir(), 'dev-harness-modular-runtime-'));
   cpSync(dirname(cli), runtime, { recursive: true });
-  const dummy = `import { readFileSync } from 'node:fs';\nimport { join } from 'node:path';\nexport default { id:'dummy', label:'Dummy', defaults:{orchestrator:{model:'dummy-high'},planner:{model:'dummy-high'},reviewer:{model:'dummy-high'},owner:{model:'dummy-low'}}, capabilities:{}, validateSettings(s){if(!s?.models?.orchestrator?.model)throw Error('Invalid dummy')}, planArtifacts(){return {files:[{path:'dev-harness/.harness/dummy.md',content:'dummy',ownership:'builtin'}],links:[{path:'.dummy/entry',target:'dev-harness/.harness/dummy.md',type:'file',legacyTargets:[]}]}},checkArtifacts(c){if(readFileSync(join(c.targetRoot,'.dummy/entry'),'utf8')!=='dummy')throw Error('Bad dummy')},startupGuidance(){return 'Dummy ready --platform dummy'}};`;
+  const dummy = `import { readFileSync } from 'node:fs';\nimport { join } from 'node:path';\nexport default { id:'dummy', label:'Dummy', defaults:{orchestrator:{model:'dummy-high'},planner:{model:'dummy-high'},reviewer:{model:'dummy-high'},owner:{model:'dummy-low'}}, capabilities:{instructionDiscovery:true,delegation:true,roleSettings:true,externalWorktrees:true,backgroundExecution:true}, validateSettings(s){if(!s?.models?.orchestrator?.model)throw Error('Invalid dummy')}, planArtifacts(){return {files:[{path:'dev-harness/.harness/dummy.md',content:'dummy',ownership:'builtin'}],links:[{path:'.dummy/entry',target:'dev-harness/.harness/dummy.md',type:'file',legacyTargets:[]}]}},checkArtifacts(c){if(readFileSync(join(c.targetRoot,'.dummy/entry'),'utf8')!=='dummy')throw Error('Bad dummy')},startupGuidance(){return 'Dummy ready --platform dummy'}};`;
   writeFileSync(join(runtime, 'integrations/dummy.mjs'), dummy);
   const registry = join(runtime, 'integrations/registry.mjs');
-  writeFileSync(registry, readFileSync(registry, 'utf8').replace("import cursor from './cursor.mjs';", "import cursor from './cursor.mjs';\nimport dummy from './dummy.mjs';").replace('[cursor]', '[cursor, dummy]'));
+  writeFileSync(registry, readFileSync(registry, 'utf8').replace("import cursor from './cursor.mjs';", "import cursor from './cursor.mjs';\nimport dummy from './dummy.mjs';").replace('[cursor, codex]', '[cursor, dummy, codex]'));
   return { root, runtime, execute: (...args) => spawnSync(process.execPath, [join(runtime, 'cli.mjs'), ...args], { cwd: root, encoding: 'utf8' }) };
 }
 
@@ -821,4 +821,225 @@ export * as configAgain from './config.mjs';
 export async function example() { return inert; }
 `);
   assert.match(ok(pinnedRun(source, 'status')), /BASELINE STATUS/);
+});
+
+function gitBin() {
+  return dirname(execFileSync('which', ['git'], { encoding: 'utf8' }).trim());
+}
+function runWith(root, env, ...args) {
+  return spawnSync(process.execPath, [cli, ...args], { cwd: root, encoding: 'utf8', env });
+}
+function codexEnvironment(version = 'codex-cli 0.162.1') {
+  const home = mkdtempSync(join(tmpdir(), 'dev-harness-codex-home-'));
+  const bin = join(home, 'bin');
+  mkdirSync(bin);
+  const log = join(mkdtempSync(join(tmpdir(), 'dev-harness-codex-log-')), 'invocations');
+  const script = '#!/bin/sh\nprintf "%s\\n" "$*" >> ' + JSON.stringify(log) + '\nif [ "$1" = "--version" ]; then\n  printf "%s\\n" ' + JSON.stringify(version) + '\n  exit 0\nfi\necho unexpected >&2\nexit 1\n';
+  writeFileSync(join(bin, 'codex'), script, { mode: 0o755 });
+  const env = { ...process.env, HOME: home, USERPROFILE: home, PATH: [bin, gitBin(), '/bin', '/usr/bin'].join(delimiter) };
+  return { home, log, env };
+}
+function isolatedEnvironment() {
+  const home = mkdtempSync(join(tmpdir(), 'dev-harness-codex-home-'));
+  const env = { ...process.env, HOME: home, USERPROFILE: home, PATH: [gitBin(), '/bin', '/usr/bin'].join(delimiter) };
+  return { home, env };
+}
+function invocations(log) {
+  return existsSync(log) ? readFileSync(log, 'utf8').trim().split('\n').filter(Boolean) : [];
+}
+function agentToml(role, model, effort) {
+  const description = {
+    planner: 'Research and plan a Dev Harness arc or workstream before implementation.',
+    reviewer: 'Independently review a Dev Harness plan or implementation against its approved scope.',
+    owner: 'Implement an approved Dev Harness workstream and verify its outcome.'
+  }[role];
+  return '# dev-harness-managed\n'
+    + `name = "dev-harness-${role}"\n`
+    + `description = "${description}"\n`
+    + `model = "${model}"\n`
+    + 'model_reasoning_effort = "' + effort + '"\n'
+    + `developer_instructions = "Read dev-harness/.harness/skills/dev-harness/SKILL.md and follow the ${role} role boundary."\n`;
+}
+
+test('cursor-only init does not spawn codex', () => {
+  const { home, log, env } = codexEnvironment();
+  const homeBefore = snapshotTree(home);
+  for (const args of [['init'], ['init', '--platform', 'cursor']]) {
+    const root = fixture();
+    const before = snapshotTree(root);
+    ok(runWith(root, env, ...args));
+    assert.deepEqual(invocations(log), []);
+    assert.equal(existsSync(join(root, '.codex')), false);
+    assert.equal(existsSync(join(root, '.agents')), false);
+    assert.deepEqual(snapshotTree(home), homeBefore);
+    assert.notDeepEqual(snapshotTree(root), before);
+  }
+});
+
+test('codex init installs only Codex, stays idempotent, and preserves Cursor when added', () => {
+  const { home, log, env } = codexEnvironment();
+  const homeBefore = snapshotTree(home);
+  const root = fixture();
+  const installed = ok(runWith(root, env, 'init', '--platform', 'codex'));
+  assert.match(installed, /codex --model gpt-6\.1-sol --config model_reasoning_effort="high"/);
+  assert.match(installed, /codex exec --model gpt-6\.1-sol --config model_reasoning_effort="high"/);
+  assert.match(installed, /Start dev harness\. Use --platform codex\./);
+  assert.equal(existsSync(join(root, '.cursor')), false);
+  assert.equal(readlinkSync(join(root, '.agents/skills/dev-harness')), '../../dev-harness/.harness/skills/dev-harness');
+  assert.equal(lstatSync(join(root, '.agents/skills/dev-harness')).isSymbolicLink(), true);
+  for (const role of ['planner', 'reviewer', 'owner']) {
+    const body = readFileSync(join(root, '.codex/agents', `dev-harness-${role}.toml`), 'utf8');
+    assert.equal(body, agentToml(role, 'gpt-6.1-sol', role === 'owner' ? 'low' : 'high'));
+    assert.equal(body.includes('sandbox') || body.includes('approval') || body.includes('feature'), false);
+  }
+  assert.deepEqual(readdirSync(join(root, '.codex/agents')).sort(), ['dev-harness-owner.toml', 'dev-harness-planner.toml', 'dev-harness-reviewer.toml']);
+  const configPath = join(root, 'dev-harness/.harness/config.json');
+  const settings = JSON.parse(readFileSync(configPath, 'utf8'));
+  assert.equal(settings.version, 2);
+  assert.deepEqual(settings.installedPlatforms, ['codex']);
+  assert.equal(settings.adapters.cursor, undefined);
+  assert.deepEqual(settings.adapters.codex.models, {
+    orchestrator: { model: 'gpt-6.1-sol', effort: 'high' },
+    planner: { model: 'gpt-6.1-sol', effort: 'high' },
+    reviewer: { model: 'gpt-6.1-sol', effort: 'high' },
+    owner: { model: 'gpt-6.1-sol', effort: 'low' }
+  });
+  assert.deepEqual(invocations(log), ['--version']);
+  assert.deepEqual(snapshotTree(home), homeBefore);
+  const first = snapshotTree(root);
+  ok(runWith(root, env, 'init'));
+  assert.deepEqual(snapshotTree(root), first);
+  assert.equal(ok(runWith(root, env, 'new', 'arc', 'Codex records')).endsWith('--codex-records'), true);
+
+  const neighbor = join(root, '.codex/agents/notes.toml');
+  const otherSkill = join(root, '.agents/skills/project-skill/SKILL.md');
+  mkdirSync(dirname(otherSkill), { recursive: true });
+  writeFileSync(neighbor, 'name = "notes"\n');
+  writeFileSync(otherSkill, 'Project skill\n');
+  const planner = join(root, '.codex/agents/dev-harness-planner.toml');
+  writeFileSync(planner, '# dev-harness-managed\nstale = true\n');
+  settings.adapters.codex.models.orchestrator = { model: 'custom-orchestrator', effort: 'medium' };
+  settings.adapters.codex.models.planner = { model: 'custom-planner', effort: 'max' };
+  writeFileSync(configPath, JSON.stringify(settings));
+  const refreshed = ok(runWith(root, env, 'init'));
+  assert.match(refreshed, /codex --model custom-orchestrator --config model_reasoning_effort="medium"/);
+  assert.match(refreshed, /codex exec --model custom-orchestrator --config model_reasoning_effort="medium"/);
+  assert.equal(readFileSync(planner, 'utf8'), agentToml('planner', 'custom-planner', 'max'));
+  assert.equal(readFileSync(join(root, '.codex/agents/dev-harness-owner.toml'), 'utf8'), agentToml('owner', 'gpt-6.1-sol', 'low'));
+  assert.equal(readFileSync(neighbor, 'utf8'), 'name = "notes"\n');
+  assert.equal(readFileSync(otherSkill, 'utf8'), 'Project skill\n');
+  const stable = snapshotTree(root);
+  ok(runWith(root, env, 'init'));
+  assert.deepEqual(snapshotTree(root), stable);
+  assert.deepEqual(snapshotTree(home), homeBefore);
+
+  const cursorRoot = fixture();
+  ok(runWith(cursorRoot, env, 'init'));
+  assert.deepEqual(invocations(log), ['--version', '--version', '--version', '--version']);
+  const cursorConfig = join(cursorRoot, 'dev-harness/.harness/config.json');
+  const cursorSettings = JSON.parse(readFileSync(cursorConfig, 'utf8'));
+  cursorSettings.models.orchestrator = 'grok-4.7[effort=xhigh]';
+  cursorSettings.models.subagents = 'custom-cursor-model';
+  writeFileSync(cursorConfig, JSON.stringify(cursorSettings));
+  ok(runWith(cursorRoot, env, 'init', '--platform', 'codex'));
+  const both = JSON.parse(readFileSync(cursorConfig, 'utf8'));
+  assert.deepEqual(both.installedPlatforms, ['cursor', 'codex']);
+  assert.equal(both.adapters.cursor.models.orchestrator.model, 'grok-4.7[effort=xhigh]');
+  assert.equal(both.adapters.cursor.models.owner.model, 'custom-cursor-model');
+  assert.equal(both.models.subagents, 'custom-cursor-model');
+  assert.equal(readlinkSync(join(cursorRoot, '.cursor/skills/dev-harness')), '../../dev-harness/.harness/skills/dev-harness');
+  assert.equal(readlinkSync(join(cursorRoot, '.agents/skills/dev-harness')), '../../dev-harness/.harness/skills/dev-harness');
+  assert.equal(readFileSync(join(cursorRoot, '.codex/agents/dev-harness-reviewer.toml'), 'utf8'), agentToml('reviewer', 'gpt-6.1-sol', 'high'));
+  const callsBeforeReads = invocations(log).length;
+  const status = ok(runWith(cursorRoot, env, 'status'));
+  const orchestrators = status.split('\n').filter(line => line.includes('Orchestrator:'));
+  assert.deepEqual(orchestrators, [
+    'Cursor · Orchestrator: grok-4.7[effort=xhigh] (configured)',
+    'Codex · Orchestrator: gpt-6.1-sol · high (configured)'
+  ]);
+  const arc = ok(runWith(cursorRoot, env, 'new', 'arc', 'Shared record'));
+  const shared = ok(runWith(cursorRoot, env, 'status'));
+  assert.equal(shared.split('\n').filter(line => line.includes(` · ${arc} · `)).length, 1);
+  const narrow = ok(runWith(cursorRoot, env, 'status', '--platform', 'codex'));
+  assert.match(narrow, /Orchestrator: gpt-6\.1-sol · high \(configured\)/);
+  assert.doesNotMatch(narrow, /Cursor|grok/);
+  assert.match(ok(runWith(cursorRoot, env, 'check', '--platform', 'codex')), /Valid: 1 records/);
+  const cursorLink = join(cursorRoot, '.cursor/skills/dev-harness');
+  unlinkSync(cursorLink);
+  writeFileSync(cursorLink, 'not a link');
+  assert.match(ok(runWith(cursorRoot, env, 'check', '--platform', 'codex')), /Valid: 1 records/);
+  assert.notEqual(runWith(cursorRoot, env, 'check').status, 0);
+  unlinkSync(cursorLink);
+  symlinkSync('../../dev-harness/.harness/skills/dev-harness', cursorLink, 'dir');
+  both.adapters.codex.models.owner.model = 'other-model';
+  writeFileSync(cursorConfig, JSON.stringify(both));
+  const ownerToml = readFileSync(join(cursorRoot, '.codex/agents/dev-harness-owner.toml'), 'utf8');
+  assert.notEqual(runWith(cursorRoot, env, 'check', '--platform', 'codex').status, 0);
+  assert.equal(readFileSync(join(cursorRoot, '.codex/agents/dev-harness-owner.toml'), 'utf8'), ownerToml);
+  both.adapters.codex.models.owner.model = 'gpt-6.1-sol';
+  both.adapters.codex.models.owner.effort = 'high';
+  writeFileSync(cursorConfig, JSON.stringify(both));
+  assert.notEqual(runWith(cursorRoot, env, 'check').status, 0);
+  both.adapters.codex.models.owner.effort = 'low';
+  writeFileSync(cursorConfig, JSON.stringify(both));
+  const record = join(cursorRoot, 'dev-harness/arcs', `${arc}.md`);
+  writeFileSync(record, 'bad');
+  assert.notEqual(runWith(cursorRoot, env, 'check', '--platform', 'codex').status, 0);
+  assert.equal(invocations(log).length, callsBeforeReads);
+  assert.deepEqual(snapshotTree(home), homeBefore);
+});
+
+test('codex readiness and native collisions refuse before any write', () => {
+  const cases = [
+    ['older version', 'codex-cli 0.162.0', root => root, /0\.162\.1 or newer/],
+    ['unparsable version', 'not-a-version', root => root, /Unparsable Codex CLI version/],
+    ['unmarked agent', 'codex-cli 0.162.1', root => { mkdirSync(join(root, '.codex/agents'), { recursive: true }); writeFileSync(join(root, '.codex/agents/dev-harness-planner.toml'), 'name = "user"\n'); }, /managed marker/],
+    ['occupied skill', 'codex-cli 0.162.1', root => { mkdirSync(join(root, '.agents/skills/dev-harness'), { recursive: true }); writeFileSync(join(root, '.agents/skills/dev-harness/SKILL.md'), 'user skill\n'); }, /Entry point already exists/],
+    ['symlink parent', 'codex-cli 0.162.1', root => { symlinkSync(mkdtempSync(join(tmpdir(), 'codex-parent-')), join(root, '.codex')); }, /Unsafe parent/],
+    ['directory agent', 'codex-cli 0.162.1', root => { mkdirSync(join(root, '.codex/agents/dev-harness-owner.toml'), { recursive: true }); }, /Native file is occupied/],
+    ['unknown platform', 'codex-cli 0.162.1', root => root, /Unsupported platform/]
+  ];
+  for (const [name, version, prepare, pattern] of cases) {
+    const { home, env } = codexEnvironment(version);
+    const homeBefore = snapshotTree(home);
+    const root = fixture();
+    prepare(root);
+    const before = snapshotTree(root);
+    const result = runWith(root, env, 'init', '--platform', name === 'unknown platform' ? 'unknown' : 'codex');
+    assert.notEqual(result.status, 0, name);
+    assert.match(result.stderr, pattern, name);
+    assert.deepEqual(snapshotTree(root), before, name);
+    assert.deepEqual(snapshotTree(home), homeBefore, name);
+  }
+  const { home, env } = isolatedEnvironment();
+  const homeBefore = snapshotTree(home);
+  const root = fixture();
+  const before = snapshotTree(root);
+  const missing = runWith(root, env, 'init', '--platform', 'codex');
+  assert.match(missing.stderr, /Codex CLI is unavailable/);
+  assert.deepEqual(snapshotTree(root), before);
+  assert.deepEqual(snapshotTree(home), homeBefore);
+  const sentinelDir = mkdtempSync(join(tmpdir(), 'codex-sentinel-'));
+  const sentinel = join(sentinelDir, 'user.toml');
+  writeFileSync(sentinel, 'user content\n');
+  const linked = fixture();
+  mkdirSync(join(linked, '.codex/agents'), { recursive: true });
+  symlinkSync(sentinel, join(linked, '.codex/agents/dev-harness-owner.toml'));
+  const linkedBefore = snapshotTree(linked);
+  const { home: linkHome, env: linkEnv } = codexEnvironment();
+  const linkHomeBefore = snapshotTree(linkHome);
+  assert.match(runWith(linked, linkEnv, 'init', '--platform', 'codex').stderr, /Native file is occupied/);
+  assert.deepEqual(snapshotTree(linked), linkedBefore);
+  assert.equal(readFileSync(sentinel, 'utf8'), 'user content\n');
+  assert.deepEqual(snapshotTree(linkHome), linkHomeBefore);
+});
+
+test('a false required capability refuses install before writes', () => {
+  const { root, runtime, execute } = modularFixture();
+  const path = join(runtime, 'integrations/dummy.mjs');
+  writeFileSync(path, readFileSync(path, 'utf8').replace('instructionDiscovery:true', 'instructionDiscovery:false'));
+  const before = snapshotTree(root);
+  const result = execute('init', '--platform', 'dummy');
+  assert.match(result.stderr, /Missing required capability: instructionDiscovery/);
+  assert.deepEqual(snapshotTree(root), before);
 });
