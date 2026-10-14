@@ -9,8 +9,8 @@
   },
   "revision": 2,
   "created": "2026-10-14T04:37:05.516Z",
-  "updated": "2026-10-14T06:26:17.770Z",
-  "next": "Define/review WS-04 Codex CLI adapter revision 1 and request IMPLEMENT approval; WS-03 MERGED and verified, WS-05 waits WS-04.",
+  "updated": "2026-10-14T09:25:00.000Z",
+  "next": "Commit and merge accepted WS-04 into the ARC, run smoke checks, then review the WS-05 Claude Code contract.",
   "status": "in-progress",
   "branch": "arc/2026-10-13-soner-can--modular-coding-agent-support",
   "integrationBranch": "main",
@@ -93,6 +93,15 @@ before implementation.
 
 ## Decisions
 
+- 2026-10-14T09:25:00.000Z · User · "merge" accepts reviewed WS-04 revision 1 fixture evidence
+  and authorizes its code/record commits, WS-to-ARC merge, and ARC smoke checks.
+  No ARC-to-main merge, push, or worktree cleanup. WS-05 implementation still
+  requires its own contract review.
+
+- 2026-10-14T07:11:30.000Z · Independent reviewer · WS-04 revision 1 RESEARCH review PASS-with-notes.
+  User implementation approval from 2026-10-14T06:44:00.000Z applies to WS-04 IMPLEMENT
+  only. No commit, merge, or push.
+
 - 2026-10-14T06:19:42.740Z · User · "ok merge" accepts reviewed WS-03 revision 2 and
   authorizes its code/ARC/WS record commits, WS-to-ARC merge, and ARC smoke checks.
   No ARC-to-main merge, push, WS-04/05 IMPLEMENT, or worktree cleanup approval.
@@ -143,13 +152,12 @@ before implementation.
 Branch: `arc/2026-10-13-soner-can--modular-coding-agent-support` from `main` at
 `718d5b4f3729df96761ef99b63adbcfec2013bae`. No integration merge yet.
 Workstreams were created at the user's explicit request before detailed plan
-review. WS-03 branch/worktree is created after user IMPLEMENT go; WS-04/05
-remain RESEARCH with no branch/worktree yet.
+review. WS-03 is MERGED. WS-04 revision 1 is in USER CONFIRM. WS-05 remains RESEARCH.
 
 | WS | Gate | Depends on | WS branch | Merge SHA |
 |----|------|------------|-----------|-----------|
 | [WS-03](../workstreams/WS-soner-can-03--modular-adapter-foundation.md) | MERGED | — | `ws/WS-soner-can-03--modular-adapter-foundation` | `6394b4807544b20842aba6748bdbe86ca36a6018` |
-| [WS-04](../workstreams/WS-soner-can-04--codex-platform-support.md) | RESEARCH | WS-03 MERGED | Planned; not created | — |
+| [WS-04](../workstreams/WS-soner-can-04--codex-platform-support.md) | USER CONFIRM | WS-03 MERGED | `ws/WS-soner-can-04--codex-platform-support` | — |
 | [WS-05](../workstreams/WS-soner-can-05--claude-code-platform-support.md) | RESEARCH | WS-04 MERGED and verified | Planned; not created | — |
 
 ## Integration checklist
@@ -199,3 +207,7 @@ remain RESEARCH with no branch/worktree yet.
 - 2026-10-14T06:19:42.740Z · User/Orchestrator · WS-03 revision 2 acceptance and commit/WS-to-ARC merge approval recorded. Draft WS-04/05 and parent ARC records persist as part of the accepted record set; their gates/approval remain unchanged.
 
 - 2026-10-14T06:26:17.770Z · Orchestrator · Accepted ARC/WS records df5c69eb02a589c9fa9b062b79f788b6f7822a3f; WS-03 code 8629ababdf9949b797b2d1c1b143da0446e0f2e7; WS-to-ARC merge 6394b4807544b20842aba6748bdbe86ca36a6018. Integrated ARC 36/36 tests PASS, original-baseline structural check seven records PASS, frozen companions unchanged. WS-03 MERGED; WS-04/05 remain RESEARCH. No main merge/push/cleanup.
+- 2026-10-14T07:11:30.000Z · Independent reviewer/User/Orchestrator · WS-04 revision 1 RESEARCH review PASS-with-notes. User implementation approval applied. WS-04 entered IMPLEMENT at parent 76201c4e89dc2e7b879e98a4bfdd20bbc2878549. WS-05 stays RESEARCH. No commit, merge, or push.
+- 2026-10-14T07:49:00.000Z · Owner/Orchestrator · WS-04 revision 1 owner reports 40/40 tests PASS and frozen companions unchanged. Code review opened. WS-05 stays RESEARCH. No commit, merge, or push.
+- 2026-10-14T08:05:00.000Z · Independent reviewer/Orchestrator · WS-04 revision 1 code review PASS. Orchestrator re-ran worktree npm test 40/40 PASS. USER CONFIRM entered. No acceptance, commit, merge, or push.
+- 2026-10-14T09:25:00.000Z · User/Orchestrator · User "merge" accepted WS-04 revision 1 and authorized commits, WS-to-ARC merge, and smoke checks. No main merge or push.

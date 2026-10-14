@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-10-14T04:41:28.335Z",
-  "updated": "2026-10-14T06:26:17.770Z",
-  "next": "WS-03 MERGED and verified; review Codex CLI artifacts/version/UAT scope and obtain revision 1 IMPLEMENT approval.",
+  "updated": "2026-10-14T09:25:00.000Z",
+  "next": "Commit accepted revision 1, merge WS-04 into the ARC, and run the integrated smoke check.",
   "arc": "2026-10-13-soner-can--modular-coding-agent-support",
   "sequence": 4,
-  "gate": "RESEARCH",
+  "gate": "USER CONFIRM",
   "dependencies": [
     "WS-soner-can-03--modular-adapter-foundation"
   ],
@@ -52,6 +52,74 @@
     "mergeCommit": "6394b4807544b20842aba6748bdbe86ca36a6018",
     "date": "2026-10-14T06:26:17.770Z",
     "smoke": "36/36 PASS"
+  },
+  "researchState": "approved",
+  "researchReview": {
+    "revision": 1,
+    "outcome": "PASS-with-notes",
+    "reviewer": "grok-4.7[effort=high]",
+    "date": "2026-10-14T07:11:30.000Z",
+    "notes": "nativeFiles channel; capability gate, assertReady, and marker check before the first mkdirSync; replace only marker files; createRecord treats native paths as managed; dummy adapter sets all five capabilities; Cursor-only init does not spawn codex."
+  },
+  "implementationApproval": {
+    "revision": 1,
+    "actor": "User",
+    "date": "2026-10-14T06:44:00.000Z",
+    "scope": "WS-04 IMPLEMENT only",
+    "evidence": "once the review pass, start the implementation and complete it then run code reviewer"
+  },
+  "implementationState": "reviewed",
+  "implementationEvidence": {
+    "revision": 1,
+    "reportedBy": "grok-4.7[effort=high]",
+    "date": "2026-10-14T07:49:00.000Z",
+    "worktree": "/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-04--codex-platform-support",
+    "startingSha": "76201c4e89dc2e7b879e98a4bfdd20bbc2878549",
+    "npmTest": "40/40 PASS; original 36 retained",
+    "diffCheck": "PASS",
+    "frozenCompanions": "empty diff and no untracked files",
+    "index": "unchanged",
+    "codexHelp": "0.162.1 documents --config; no live session"
+  },
+  "codeReview": {
+    "revision": 1,
+    "outcome": "PASS",
+    "reviewer": "grok-4.7[effort=high]",
+    "date": "2026-10-14T08:00:00.000Z",
+    "worktree": "/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-04--codex-platform-support",
+    "startingSha": "76201c4e89dc2e7b879e98a4bfdd20bbc2878549",
+    "limits": "Reviewer read the uncommitted tree and counted 40 tests. Shell was blocked, so npm test was not re-run by the reviewer. Orchestrator re-ran npm test 40/40 PASS at 2026-10-14T08:05:00.000Z. No live Codex UAT."
+  },
+  "userTesting": {
+    "revision": 1,
+    "state": "offered",
+    "worktree": "/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-04--codex-platform-support",
+    "command": "npm test",
+    "expected": "40 tests PASS",
+    "nativeRuntime": "not verified",
+    "server": "not applicable; CLI/package fixtures",
+    "acceptedDate": "2026-10-14T09:25:00.000Z"
+  },
+  "acceptance": {
+    "revision": 1,
+    "actor": "User",
+    "date": "2026-10-14T09:25:00.000Z",
+    "evidence": "merge",
+    "scope": "Accept reviewed revision 1 fixture evidence and authorize code/record commits, WS-to-ARC merge, and ARC smoke checks. No ARC-to-main merge, push, or worktree cleanup. Live Codex CLI UAT was not run."
+  },
+  "checkout": {
+    "branch": "ws/WS-soner-can-04--codex-platform-support",
+    "parentBranch": "arc/2026-10-13-soner-can--modular-coding-agent-support",
+    "parentSha": "76201c4e89dc2e7b879e98a4bfdd20bbc2878549",
+    "worktree": "../dev-harness-worktrees/WS-soner-can-04--codex-platform-support/"
+  },
+  "cursorSessionLaunch": {
+    "platform": "cursor",
+    "orchestrator": "grok-4.7[effort=high]",
+    "planner": "grok-4.7[effort=high]",
+    "reviewer": "grok-4.7[effort=high]",
+    "owner": "grok-4.7[effort=high]",
+    "source": "harness models.orchestrator and models.subagents"
   }
 }
 ---
@@ -64,13 +132,12 @@
 
 ## Checkout
 
-Planned WS branch: `ws/WS-soner-can-04--codex-platform-support`.
-Parent: `arc/2026-10-13-soner-can--modular-coding-agent-support`.
-Planned external worktree: `../dev-harness-worktrees/WS-soner-can-04--codex-platform-support/`.
-Resolved planned path: `/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-04--codex-platform-support`.
-These are planned locations; no WS branch or worktree has been created.
-Create them only after RESEARCH review PASS, user IMPLEMENT approval, and dependency
-merges. Record the actual parent tip then.
+WS branch: `ws/WS-soner-can-04--codex-platform-support`.
+Parent: `arc/2026-10-13-soner-can--modular-coding-agent-support` at
+`76201c4e89dc2e7b879e98a4bfdd20bbc2878549`.
+External worktree: `../dev-harness-worktrees/WS-soner-can-04--codex-platform-support/`.
+Resolved: `/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-04--codex-platform-support`.
+Created after RESEARCH PASS-with-notes and user IMPLEMENT approval.
 
 The ARC checkout owns authoritative records under
 `/Users/scaryguy/Projects/dev-harness/dev-harness/`; owner-worktree record copies
@@ -150,6 +217,36 @@ Deliver a concise report with reviewed revision, exact worktree/starting SHA,
 files changed, checks actually run and outcomes, remaining issues, and runnable
 user test commands. The orchestrator updates records and manages the testing handoff.
 
+## Reviewed specification
+
+Revision 1 RESEARCH review PASS-with-notes on 2026-10-14T07:11:30.000Z by Grok 4.7 High.
+Implementation notes from that review are part of this specification.
+
+Add `dev-harness/.harness/integrations/codex.mjs` and register it after Cursor.
+`init --platform codex` adds Codex and preserves Cursor. Project writes only:
+
+- `.agents/skills/dev-harness` directory symlink to `dev-harness/.harness/skills/dev-harness`, with `legacyTargets: []`
+- `.codex/agents/dev-harness-planner.toml`
+- `.codex/agents/dev-harness-reviewer.toml`
+- `.codex/agents/dev-harness-owner.toml`
+
+Each TOML starts with `# dev-harness-managed` and sets `name`, `description`, `model`, `model_reasoning_effort`, and `developer_instructions`. Names match the filenames without `.toml`. First-install defaults are `gpt-6.1-sol` high for planner and reviewer, and low for owner. Orchestrator uses the same model and high effort in `adapters.codex.models` and in startup guidance, not a fourth file. Instructions point at the shared skill and role boundary. They do not set sandbox, approval, or feature keys.
+
+`nativeFiles` is a new install channel. Run the capability gate, `assertReady`, and the marker check after `integrations.preflight` and the `AGENTS.md` read, and before the first `mkdirSync`. Create a missing native file. Replace a file that starts with the marker. Refuse a directory, symlink, or unmarked file before any write. Other files under `.codex/agents/` and `.agents/skills/` stay. `createRecord` treats these native paths as managed. `assertReady` runs `codex --version` with `spawnSync` and no shell, and accepts only `codex-cli` versions at least `0.162.1`. Call it only when that adapter defines it and is in the planned installed set. Cursor-only init does not spawn `codex`.
+
+`codex.mjs` uses the restricted module syntax, including no regex literals, template strings, slash operators, or `import.meta`. Frozen `config.json`, `templates/**`, and `adapters/**` stay byte-identical to `718d5b4f3729df96761ef99b63adbcfec2013bae`.
+
+Startup guidance is rendered from the configured orchestrator model and effort:
+
+```text
+codex --model gpt-6.1-sol --config model_reasoning_effort="high"
+codex exec --model gpt-6.1-sol --config model_reasoning_effort="high"
+```
+
+The skill's `--platform codex` section tells the session to spawn the three names with no alternate model or effort, to stop a role whose parent label does not show that model and effort, and to use harness git worktrees. If `codex --help` on 0.162.1 rejects `--config`, stop and return that result.
+
+Retain the existing 36 tests. Set the dummy adapter's five capabilities true so its install still succeeds, and add a separate false-capability refusal. Fixtures use a temp `HOME` and a PATH-first fake `codex`.
+
 ## Decisions
 
 Locked user decisions:
@@ -166,32 +263,37 @@ Locked user decisions:
 - Make platform integrations modular; add Codex before Claude Code.
 - Use GPT-6.1 Sol High for orchestration/review and GPT-6.1 Sol Low for owners,
   with detailed orchestrator handoffs.
+- 2026-10-14T06:44:00.000Z · User: this Cursor session launches planner, reviewer,
+  and owner with the harness models, Grok 4.7 High. Codex product defaults stay
+  GPT-6.1 Sol. After RESEARCH PASS, implement revision 1 and run the code reviewer.
 
 Repository conventions: shared Markdown records/gates; external WS worktrees;
 independent review; explicit implementation/integration approval; source governance
-pinned to ARC baseSha. Existing shipped Grok defaults are not changed by this
-session's agent assignments.
+pinned to ARC baseSha. Existing shipped Grok defaults are not changed by the
+Codex product defaults.
 
-Open decisions blocking IMPLEMENT:
+Accepted defaults, revision 1:
+- CLI floor `codex-cli` 0.162.1 or newer. A missing or older binary fails before writes.
+- Project artifacts only: `.agents/skills/dev-harness` symlink and three
+  `.codex/agents/dev-harness-{planner,reviewer,owner}.toml` files. No `~/.codex` writes.
+- In-session `/subagents` is the background behavior. Parent-label mismatch stops that role.
+- Fixture `npm test` is separate from live Codex CLI acceptance after code-review PASS.
 
-- Supported CLI version floor and native capability checks. CLI-only scope is locked.
-- Native discovery, delegation, background execution, and model/effort capabilities.
-- Settings scope, additive-install collision handling, and unsupported-capability behavior
-  as established in WS-03 and confirmed for Codex.
-- Live platform smoke-test environment and precise acceptance workflow.
-
-The adapter split and implementation steps remain a draft proposal. The user
-decisions above are locked; remaining defaults are unapproved. No plan-review
-PASS or per-WS RESEARCH PASS is asserted.
+Open decisions blocking IMPLEMENT: none. Independent revision 1 RESEARCH review
+PASS-with-notes. User IMPLEMENT approval is recorded below. No commit, merge, or push
+is authorized.
 
 ## Gate
 
-Current: `RESEARCH`. Revision: 1. Review pending; implementation not authorized.
-Next: WS-03 MERGED and verified; review Codex CLI artifacts/version/UAT scope and obtain revision 1 IMPLEMENT approval.
+Current: `USER CONFIRM`. Revision: 1. Independent code review PASS. Changes remain uncommitted.
+Next: User tests uncommitted revision 1 from the WS worktree, or chooses self-test or waiver. Acceptance is separate from commit and WS-to-ARC merge.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
-| RESEARCH | 2026-10-13 | — | Review pending |
+| RESEARCH | 2026-10-13 | 2026-10-14 | PASS-with-notes; user go |
+| IMPLEMENT | 2026-10-14 | 2026-10-14 | ready-for-review |
+| REVIEW | 2026-10-14 | 2026-10-14 | PASS |
+| USER CONFIRM | 2026-10-14 | — | testing offered |
 
 ## Codex CLI research evidence
 
@@ -218,7 +320,7 @@ Do not overwrite user-level configuration or loosen parent permissions.
 
 ## Verification
 
-Planned checks; none of these implementation checks has been run for this draft:
+Orchestrator re-ran `npm test` in the WS worktree on 2026-10-14T08:05:00.000Z: 40/40 PASS. Live Codex CLI acceptance has not been run.
 
 - Disposable fresh install and re-init preserve unrelated project instructions,
   platform configuration, knowledge, records, and other installed integrations
@@ -242,14 +344,21 @@ from the actual WS worktree before asking for acceptance of the reviewed revisio
 - [ ] Codex discovers the shared workflow and resumes shared records.
 - [ ] Approved delegation, model/effort settings, and worktree isolation are verified.
 - [ ] Cursor and source governance regressions remain verified.
-- [ ] User confirms reviewed revision 1 and separately authorizes WS-to-ARC merge.
+- [x] User confirms reviewed revision 1 and authorizes WS-to-ARC merge. Live Codex CLI UAT was not run.
 
 ## Approvals
 
 - 2026-10-13 · User authorized WS record creation and the development-agent
   model/effort assignments above.
-- Revision 1 is a draft in RESEARCH. No implementation, commit, merge, push,
-  or reviewed-revision acceptance has been authorized. No review outcome exists.
+- 2026-10-14T07:11:30.000Z · Independent reviewer · Grok 4.7 High · Revision 1
+  RESEARCH review PASS-with-notes. This permits implementation only together with
+  the user go-ahead below. No commit, merge, push, or reviewed-revision acceptance.
+- 2026-10-14T06:44:00.000Z · User · "once the review pass, start the implementation
+  and complete it then run code reviewer" approves WS-04 revision 1 IMPLEMENT after
+  that review. No commit, WS-to-ARC merge, push, or main integration.
+- 2026-10-14T09:25:00.000Z · User · "merge" accepts reviewed revision 1 fixture evidence
+  and authorizes code/record commits, WS-to-ARC merge, and ARC smoke checks.
+  No ARC-to-main merge, push, or worktree cleanup. Live Codex CLI UAT was not run.
 
 ## Progress ledger
 
@@ -259,3 +368,7 @@ from the actual WS worktree before asking for acceptance of the reviewed revisio
 - 2026-10-14T04:50:49.728Z · Orchestrator · Recorded user decisions: coexistence, Codex CLI-only, explicit additive installation, and installed Codex per-role model/effort defaults. Draft remains unreviewed in RESEARCH; no IMPLEMENT authorization.
 
 - 2026-10-14T06:26:17.770Z · Orchestrator · WS-03 prerequisite satisfied at ARC merge 6394b4807544b20842aba6748bdbe86ca36a6018, smoke36/36 PASS. This WS remains RESEARCH; no per-WS research review or IMPLEMENT approval yet.
+- 2026-10-14T07:11:30.000Z · Independent reviewer/Orchestrator · Revision 1 RESEARCH review PASS-with-notes. User IMPLEMENT approval applied. Gate entered IMPLEMENT. Worktree created at parent 76201c4e89dc2e7b879e98a4bfdd20bbc2878549. No commit, merge, or push.
+- 2026-10-14T07:49:00.000Z · Owner/Orchestrator · Revision 1 implementation reported ready. Owner 40/40 tests PASS, diff check PASS, frozen companions unchanged, index unchanged. Independent code review opened on the uncommitted worktree. No commit, merge, push, or live Codex UAT.
+- 2026-10-14T08:05:00.000Z · Independent reviewer/Orchestrator · Revision 1 code review PASS on the uncommitted worktree. Reviewer did not re-run tests; orchestrator re-ran npm test 40/40 PASS. USER CONFIRM entered. No commit, merge, push, or live Codex UAT.
+- 2026-10-14T09:25:00.000Z · User/Orchestrator · User "merge" accepted reviewed revision 1 and approved code/record commits, WS-to-ARC merge, and smoke checks. USER CONFIRM remains until the merge commit. No ARC-to-main merge or push.
