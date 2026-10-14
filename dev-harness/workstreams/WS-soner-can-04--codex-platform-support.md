@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-10-14T04:41:28.335Z",
-  "updated": "2026-10-14T09:25:00.000Z",
-  "next": "Commit accepted revision 1, merge WS-04 into the ARC, and run the integrated smoke check.",
+  "updated": "2026-10-14T09:35:00.000Z",
+  "next": "Integrated into ARC with smoke 40/40 PASS. WS-05 Claude Code contract review is next.",
   "arc": "2026-10-13-soner-can--modular-coding-agent-support",
   "sequence": 4,
-  "gate": "USER CONFIRM",
+  "gate": "MERGED",
   "dependencies": [
     "WS-soner-can-03--modular-adapter-foundation"
   ],
@@ -285,15 +285,16 @@ is authorized.
 
 ## Gate
 
-Current: `USER CONFIRM`. Revision: 1. Independent code review PASS. Changes remain uncommitted.
-Next: User tests uncommitted revision 1 from the WS worktree, or chooses self-test or waiver. Acceptance is separate from commit and WS-to-ARC merge.
+Current: `MERGED`. Revision: 1. Integrated at `140affaa3e6d3f3bb58af924df814e6142a39a1d`. Arc smoke 40/40 PASS.
+Next: Integrated into ARC with smoke 40/40 PASS. WS-05 Claude Code contract review is next.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
 | RESEARCH | 2026-10-13 | 2026-10-14 | PASS-with-notes; user go |
 | IMPLEMENT | 2026-10-14 | 2026-10-14 | ready-for-review |
 | REVIEW | 2026-10-14 | 2026-10-14 | PASS |
-| USER CONFIRM | 2026-10-14 | — | testing offered |
+| USER CONFIRM | 2026-10-14 | 2026-10-14 | user accepted revision 1 |
+| MERGED | 2026-10-14 | — | ARC smoke 40/40 PASS |
 
 ## Codex CLI research evidence
 
@@ -372,3 +373,4 @@ from the actual WS worktree before asking for acceptance of the reviewed revisio
 - 2026-10-14T07:49:00.000Z · Owner/Orchestrator · Revision 1 implementation reported ready. Owner 40/40 tests PASS, diff check PASS, frozen companions unchanged, index unchanged. Independent code review opened on the uncommitted worktree. No commit, merge, push, or live Codex UAT.
 - 2026-10-14T08:05:00.000Z · Independent reviewer/Orchestrator · Revision 1 code review PASS on the uncommitted worktree. Reviewer did not re-run tests; orchestrator re-ran npm test 40/40 PASS. USER CONFIRM entered. No commit, merge, push, or live Codex UAT.
 - 2026-10-14T09:25:00.000Z · User/Orchestrator · User "merge" accepted reviewed revision 1 and approved code/record commits, WS-to-ARC merge, and smoke checks. USER CONFIRM remains until the merge commit. No ARC-to-main merge or push.
+- 2026-10-14T09:35:00.000Z · Orchestrator · Acceptance records b29e35e169fcba2de627a6d943222a869897fc87; code e58f24adcad54723b78f659dd24f3a8a922b6c06; WS-to-ARC merge 140affaa3e6d3f3bb58af924df814e6142a39a1d. Integrated npm test 40/40 PASS. Original-baseline structural check PASS. Frozen companions unchanged. Live Codex CLI UAT was not run. No main merge or push.

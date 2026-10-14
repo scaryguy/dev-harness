@@ -9,8 +9,8 @@
   },
   "revision": 1,
   "created": "2026-10-14T04:41:32.529Z",
-  "updated": "2026-10-14T04:50:49.728Z",
-  "next": "Await verified WS-04 MERGED; define Claude Code scope, review revision 1, and obtain IMPLEMENT approval.",
+  "updated": "2026-10-14T09:35:00.000Z",
+  "next": "WS-04 MERGED and verified; review the Claude Code CLI contract, then implement only after that review passes.",
   "arc": "2026-10-13-soner-can--modular-coding-agent-support",
   "sequence": 5,
   "gate": "RESEARCH",
@@ -46,6 +46,12 @@
       "model": "gpt-6.1-sol",
       "effort": "low"
     }
+  },
+  "dependencyVerification": {
+    "workstream": "WS-soner-can-04--codex-platform-support",
+    "mergeCommit": "140affaa3e6d3f3bb58af924df814e6142a39a1d",
+    "date": "2026-10-14T09:35:00.000Z",
+    "smoke": "40/40 PASS"
   }
 }
 ---
@@ -223,3 +229,4 @@ from the actual WS worktree before asking for acceptance of the reviewed revisio
 - 2026-10-14T04:44:13.671Z · Orchestrator · Drafted revision 1 scope, dependencies, detailed owner guidance, and user-requested agent assignments. RESEARCH review pending; no implementation.
 
 - 2026-10-14T04:50:49.728Z · Orchestrator · Recorded user decisions: coexistence, Codex CLI-only, explicit additive installation, and installed Codex per-role model/effort defaults. Draft remains unreviewed in RESEARCH; no IMPLEMENT authorization.
+- 2026-10-14T09:35:00.000Z · Orchestrator · WS-04 prerequisite satisfied at ARC merge 140affaa3e6d3f3bb58af924df814e6142a39a1d, smoke 40/40 PASS. This WS remains RESEARCH. User asked for contract review and, after PASS, implementation left ready. No review outcome or IMPLEMENT entry yet.
