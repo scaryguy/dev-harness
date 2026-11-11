@@ -9,8 +9,8 @@
   },
   "revision": 2,
   "created": "2026-10-14T04:37:05.516Z",
-  "updated": "2026-11-11T07:44:00.000Z",
-  "next": "User approved closing this ARC and merging it to main. Record that approval, merge, and verify.",
+  "updated": "2026-11-11T07:49:00.000Z",
+  "next": "Merge the approved ARC into main, verify integration, and record its merge SHA.",
   "status": "in-progress",
   "branch": "arc/2026-10-13-soner-can--modular-coding-agent-support",
   "integrationBranch": "main",
@@ -172,11 +172,11 @@ review. WS-03, WS-04, and WS-05 are MERGED.
 
 ## Integration checklist
 
-- [ ] Workstreams completed or explicitly deferred.
-- [ ] Arc smoke tests after each WS merge and final integration checks passed.
-- [ ] Codex support verified before Claude Code implementation begins.
-- [ ] Existing Cursor behavior and source baseline governance remain verified.
-- [ ] User approved integration of the reviewed revision.
+- [x] Workstreams completed or explicitly deferred.
+- [x] Arc smoke tests after each WS merge and final integration checks passed.
+- [x] Codex support verified before Claude Code implementation begins.
+- [x] Existing Cursor behavior and source baseline governance remain verified.
+- [x] User approved integration of the reviewed revision.
 
 ## Progress ledger
 
@@ -227,3 +227,4 @@ review. WS-03, WS-04, and WS-05 are MERGED.
 - 2026-10-14T10:28:00.000Z · Independent reviewer/Orchestrator · WS-05 revision 1 code review PASS-with-notes. Orchestrator re-ran worktree npm test 46/46 PASS and confirmed an empty frozen diff. USER CONFIRM entered. No acceptance, commit, merge, or push.
 - 2026-11-11T07:33:00.000Z · User/Orchestrator · User "confirm and close the arc and merge to main" accepted WS-05 revision 1 fixture evidence and authorized commits, WS-to-ARC merge, smoke checks, ARC close, and merge into main. Live Claude Code UAT was not run. No push or worktree cleanup.
 - 2026-11-11T07:44:00.000Z · Orchestrator · WS-05 acceptance 690b401f073bddff9d04d83b639838a0692465c1; code 436d3c94728ef284e66d77eb1af4daed314f1813; WS-to-ARC merge 82e2512b46d0869ef8081870381be807061bdbe6. Integrated npm test 46/46 PASS. Original-baseline structural check PASS. Frozen companions unchanged. Live Claude Code UAT was not run. No main merge yet.
+- 2026-11-11T07:49:00.000Z · Orchestrator · Co-author rule committed at 1bc785c861e587b25d498f4ddd8bc9089861411f. Integrated npm test 46/46 PASS. User approval to integrate this ARC into main is recorded. No push or worktree cleanup.
