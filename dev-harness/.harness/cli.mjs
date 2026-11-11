@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, realpathSync, renameSync, rmSync, rmdirSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
+import { isBuiltin } from 'node:module';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -12,8 +13,8 @@ const home = join(root, 'dev-harness');
 const internal = join(home, '.harness');
 const markerStart = '<!-- dev-harness:start -->';
 const markerEnd = '<!-- dev-harness:end -->';
-const entry = `${markerStart}\nAt the start of a session, read \`dev-harness/.harness/skills/dev-harness/SKILL.md\`.\nRun \`node dev-harness/.harness/cli.mjs status\` and present its data using the skill's Session summary template, not raw output.\nFollow the skill before planning or changing this project.\n${markerEnd}`;
-const sourceEntry = `${markerStart}\nFor every source-repository ARC, validate its full baseSha as an ancestor commit and its regular committed CLI/skill blobs. Read the baseline skill with \`git show BASE_SHA:dev-harness/.harness/skills/dev-harness/SKILL.md\` before following live instructions. Independently extract the CLI from that same SHA into an OS temporary directory verified outside the repo; verify its bytes against Git. Only invoke that absolute baseline CLI path from the ARC checkout, including \`node ABSOLUTE_BASELINE_CLI pinned skill\` and \`node ABSOLUTE_BASELINE_CLI pinned <command>\` when the baseline supports pinning. Never invoke the live candidate CLI's pinned dispatcher for governance. If the baseline predates pinned support, manually verify companion files and run the extracted baseline CLI as described in the source skill, after reading the baseline skill. Fail closed; no live fallback or pinned init. Outside a source ARC, read \`dev-harness/.harness/skills/dev-harness/SKILL.md\` and run \`node dev-harness/.harness/cli.mjs status\`. Present status using the skill's Session summary template.\n${markerEnd}`;
+const entry = `${markerStart}\nAt the start of a session, read \`dev-harness/.harness/skills/dev-harness/SKILL.md\`.\nRun \`node dev-harness/.harness/cli.mjs status\` and present its data using the skill's Session summary template, not raw output.\nFollow the skill before planning or changing this project. Never add a co-author line to any commit.\n${markerEnd}`;
+const sourceEntry = `${markerStart}\nFor every source-repository ARC, validate its full baseSha as an ancestor commit and its regular committed CLI/skill blobs. Read the baseline skill with \`git show BASE_SHA:dev-harness/.harness/skills/dev-harness/SKILL.md\` before following live instructions. Independently extract the CLI from that same SHA into an OS temporary directory verified outside the repo; verify its bytes against Git. Only invoke that absolute baseline CLI path from the ARC checkout, including \`node ABSOLUTE_BASELINE_CLI pinned skill\` and \`node ABSOLUTE_BASELINE_CLI pinned <command>\` when the baseline supports pinning. Never invoke the live candidate CLI's pinned dispatcher for governance. If the baseline predates pinned support, manually verify companion files and run the extracted baseline CLI as described in the source skill, after reading the baseline skill. Fail closed; no live fallback or pinned init. Outside a source ARC, read \`dev-harness/.harness/skills/dev-harness/SKILL.md\` and run \`node dev-harness/.harness/cli.mjs status\`. Present status using the skill's Session summary template. Never add a co-author line to any commit.\n${markerEnd}`;
 const pinnedRuntimeVersion = 1;
 const gates = ['RESEARCH', 'IMPLEMENT', 'REVIEW', 'USER CONFIRM', 'MERGED', 'DEFERRED', 'CANCELLED', 'SPLIT'];
 const roles = ['planner', 'reviewer', 'owner'];
@@ -35,24 +36,30 @@ function slug(value) {
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-function config(folder = internal) {
-  const value = JSON.parse(readFileSync(join(folder, 'config.json'), 'utf8'));
-  if (value.version !== 1 || value.platform !== 'cursor'
-      || ![value.models?.orchestrator, value.models?.subagents].every(model => typeof model === 'string' && model.length && !/[\r\n]/.test(model))
-      || !value.git?.integrationBranch || typeof value.git.requireExplicitWriteApproval !== 'boolean'
-      || !Array.isArray(value.checks) || value.checks.some(check => typeof check !== 'string')) {
-    throw new Error('Invalid config.json. Expected version 1, Cursor models, Git policy, and a checks array.');
-  }
-  return value;
+let integrations;
+async function loadIntegrations() {
+  const [registry, configuration, installation] = await Promise.all(['registry', 'config', 'install'].map(name => import(new URL(`./integrations/${name}.mjs`, import.meta.url))));
+  integrations = { ...registry, ...configuration, ...installation };
 }
-
-function links(target) {
-  return [
-    ['.cursor/skills/dev-harness', 'dev-harness/.harness/skills/dev-harness', 'dir'],
-    ...roles.map(role => [`.cursor/agents/dev-harness-${role}.md`, `dev-harness/.harness/adapters/cursor/agents/dev-harness-${role}.md`, 'file'])
-  ].map(([from, to, type]) => ({ path: join(target, from),
-    to: relative(dirname(join(target, from)), join(target, to)),
-    legacy: relative(dirname(join(target, from)), join(target, to.replace('/.harness/', '/'))), type }));
+function rawConfig(folder = internal) { return JSON.parse(readFileSync(join(folder, 'config.json'), 'utf8')); }
+function config(folder = internal) { return integrations.normalize(rawConfig(folder)); }
+function artifactPlan(target = root, settings = config()) { return integrations.planArtifacts(target, source, settings); }
+function selectors(args, multiple = false, targetAllowed = false) {
+  const ids = []; let target;
+  for (let index = 0; index < args.length; index++) {
+    const value = args[index];
+    if (value === '--platform') {
+      const id = args[++index];
+      if (!id || id.startsWith('-') || (!multiple && ids.length)) throw Error('Invalid --platform selector.');
+      integrations.lookup(id); ids.push(id);
+    } else if (targetAllowed && !target && !value.startsWith('-')) target = value;
+    else throw Error(`Unexpected argument: ${value}`);
+  }
+  return { ids: [...new Set(ids)], target };
+}
+function selected(settings, ids) {
+  for (const id of ids) if (!settings.installedPlatforms.includes(id)) throw Error(`Platform is not installed: ${id}`);
+  return ids.length ? ids : settings.installedPlatforms;
 }
 
 function exists(path) {
@@ -77,7 +84,7 @@ function isPackageSourceCheckout(target) {
   return required.every(path => tracked.has(path));
 }
 
-function init(target) {
+function init(target, requested = []) {
   const folder = join(target, 'dev-harness');
   const runtime = join(folder, '.harness');
   if (!existsSync(target) || !lstatSync(target).isDirectory()) throw new Error('Target must be an existing repository directory.');
@@ -88,25 +95,63 @@ function init(target) {
       && (!existsSync(runtime) || realpathSync(source) !== realpathSync(runtime))) {
     throw new Error('Refusing to init a Dev Harness package source checkout from an external package. Run its own dev-harness/.harness/cli.mjs init instead.');
   }
+  integrations.safeParents(target, 'dev-harness/.harness', true);
+  for (const configPath of [join(runtime, 'config.json'), join(folder, 'config.json')]) {
+    const item = exists(configPath);
+    if (item && !item.isFile()) throw Error(`Unsafe config: ${configPath}`);
+  }
   const current = existsSync(join(runtime, 'config.json')) ? runtime : existsSync(join(folder, 'config.json')) ? folder : null;
   if (exists(folder) && !current) throw new Error('Existing dev-harness/ is not managed by this scaffold.');
-  if (current) config(current);
-  const oldItems = ['config.json', 'cli.mjs', 'cli.test.mjs', 'templates', 'skills', 'adapters', 'knowledge', 'state', 'local', 'cache', '.gitignore']
+  const plannedConfig = integrations.planConfig(current ? rawConfig(current) : null, rawConfig(source), requested);
+  const settings = integrations.normalize(plannedConfig);
+  const plan = artifactPlan(target, settings);
+  integrations.safeParents(target, 'dev-harness/.harness', true);
+  integrations.safeParents(target, 'AGENTS.md');
+  const agentsStat = exists(join(target, 'AGENTS.md'));
+  if (agentsStat && !agentsStat.isFile()) throw Error('Unsafe AGENTS.md.');
+  // Refuse symlinks throughout owned runtime trees before recursive copy refresh.
+  function preflightTree(path) {
+    const item = exists(path);
+    if (!item) return;
+    if (item.isSymbolicLink() || (!item.isDirectory() && !item.isFile())) throw Error(`Unsafe managed path: ${path}`);
+    if (item.isDirectory()) for (const name of readdirSync(path)) preflightTree(join(path, name));
+  }
+  function preflightCopy(sourcePath, destination) {
+    const expected = exists(sourcePath);
+    if (!expected || expected.isSymbolicLink() || (!expected.isDirectory() && !expected.isFile())) throw Error(`Invalid runtime source: ${sourcePath}`);
+    const actual = exists(destination);
+    if (actual && (actual.isSymbolicLink() || expected.isDirectory() !== actual.isDirectory() || expected.isFile() !== actual.isFile())) throw Error(`Invalid managed path: ${destination}`);
+    if (expected.isDirectory()) for (const name of readdirSync(sourcePath)) preflightCopy(join(sourcePath, name), join(destination, name));
+  }
+  for (const item of ['config.json', 'cli.mjs', 'templates', 'skills', 'adapters', 'integrations', '.gitignore']) {
+    const sourcePath = join(source, item === '.gitignore' ? 'templates/gitignore' : item);
+    for (const destination of new Set([join(current || runtime, item), join(runtime, item)])) {
+      preflightTree(destination);
+      preflightCopy(sourcePath, destination);
+    }
+  }
+  for (const group of ['arcs', 'workstreams']) integrations.safeParents(target, `dev-harness/${group}`, true);
+  const oldItems = ['config.json', 'cli.mjs', 'cli.test.mjs', 'templates', 'skills', 'adapters', 'integrations', 'knowledge', 'state', 'local', 'cache', '.gitignore']
     .filter(item => exists(join(folder, item)));
   for (const item of oldItems) {
     if (exists(join(runtime, item))) throw new Error(`Migration conflict: ${join(runtime, item)}`);
   }
-  const discovery = links(target);
-  for (const link of discovery) {
-    const stat = exists(link.path);
-    if (stat && (!stat.isSymbolicLink() || ![link.to, link.legacy].includes(readlinkSync(link.path)))) throw new Error(`Entry point already exists: ${link.path}`);
-  }
+  const discovery = plan.links.map(link => ({ ...link, path: join(target, link.path) }));
+  integrations.preflight(target, plan);
   const agents = join(target, 'AGENTS.md');
   const previous = existsSync(agents) ? readFileSync(agents, 'utf8') : '';
-  if (previous.includes(markerStart) !== previous.includes(markerEnd)) throw new Error('Incomplete Dev Harness block in AGENTS.md.');
+  const starts = previous.split(markerStart).length - 1;
+  const ends = previous.split(markerEnd).length - 1;
+  if (starts !== ends || starts > 1 || (starts && previous.indexOf(markerEnd) < previous.indexOf(markerStart))) throw new Error('Incomplete or malformed Dev Harness block in AGENTS.md.');
+  integrations.assertCapabilities(settings.installedPlatforms);
+  for (const id of settings.installedPlatforms) {
+    const adapter = integrations.lookup(id);
+    if (typeof adapter.assertReady === 'function') adapter.assertReady();
+  }
+  integrations.preflightNatives(target, plan);
   if (!current) {
     mkdirSync(runtime, { recursive: true });
-    for (const item of ['config.json', 'cli.mjs', 'templates', 'skills', 'adapters']) {
+    for (const item of ['config.json', 'cli.mjs', 'templates', 'skills', 'adapters', 'integrations']) {
       cpSync(join(source, item), join(runtime, item), { recursive: true, errorOnExist: true, force: false });
     }
     cpSync(join(source, 'templates', 'gitignore'), join(runtime, '.gitignore'));
@@ -115,27 +160,23 @@ function init(target) {
   } else if (oldItems.length) {
     mkdirSync(runtime, { recursive: true });
     for (const item of oldItems) renameSync(join(folder, item), join(runtime, item));
-    const skill = join(runtime, 'skills', 'dev-harness', 'SKILL.md');
-    let body = readFileSync(skill, 'utf8');
-    for (const item of ['cli.mjs', 'config.json', 'knowledge/', 'skills/', 'templates/', 'adapters/']) {
-      body = body.replaceAll(`dev-harness/${item}`, `dev-harness/.harness/${item}`);
-    }
-    body = body.replace('findings in knowledge/', 'findings in dev-harness/.harness/knowledge/');
-    body = body.replace('Keep harness content inside dev-harness/. External files may contain only necessary',
-      'Only arcs/ and workstreams/ stay visible inside dev-harness/; all internals belong\nin its .harness/ directory. External files may contain only necessary');
-    writeFileSync(skill, body);
+
   }
-  for (const item of ['cli.mjs', 'templates', 'skills', 'adapters']) {
+  for (const item of ['cli.mjs', 'templates', 'skills', 'adapters', 'integrations']) {
     if (resolve(join(source, item)) !== resolve(join(runtime, item))) {
       cpSync(join(source, item), join(runtime, item), { recursive: true });
     }
   }
   for (const group of ['arcs', 'workstreams']) mkdirSync(join(folder, group), { recursive: true });
-  for (const role of roles) {
-    const path = join(runtime, 'adapters', 'cursor', 'agents', `dev-harness-${role}.md`);
-    const body = readFileSync(path, 'utf8');
-    const next = body.replace(/^model: .+$/m, `model: ${config(runtime).models.subagents}`);
-    if (next !== body) writeFileSync(path, next);
+  const configPath = join(runtime, 'config.json');
+  if (JSON.stringify(rawConfig(runtime)) !== JSON.stringify(plannedConfig)) writeFileSync(configPath, `${JSON.stringify(plannedConfig, null, 2)}\n`);
+  for (const file of plan.files) {
+    mkdirSync(dirname(join(target, file.path)), { recursive: true });
+    writeFileSync(join(target, file.path), file.content);
+  }
+  for (const file of plan.nativeFiles) {
+    mkdirSync(dirname(join(target, file.path)), { recursive: true });
+    writeFileSync(join(target, file.path), file.content);
   }
   const instruction = isPackageSourceCheckout(target) ? sourceEntry : entry;
   const updated = previous.includes(markerStart)
@@ -144,10 +185,10 @@ function init(target) {
   if (updated !== previous) writeFileSync(agents, updated);
   for (const link of discovery) {
     mkdirSync(dirname(link.path), { recursive: true });
-    if (exists(link.path) && readlinkSync(link.path) === link.legacy) unlinkSync(link.path);
+    if (exists(link.path) && link.legacy.includes(readlinkSync(link.path))) unlinkSync(link.path);
     if (!exists(link.path)) symlinkSync(link.to, link.path, link.type);
   }
-  console.log('Cursor ready. Select Grok 4.7 · High, start a new chat, and say “Start dev harness.”');
+  for (const id of settings.installedPlatforms) console.log(integrations.lookup(id).startupGuidance({ targetRoot: target, sourceRoot: source, settings: settings.adapters[id], id }));
   console.log('Init refreshes built-in instructions; preserves configuration, knowledge, arcs, and workstreams.');
 }
 
@@ -186,11 +227,16 @@ function records() {
   return result;
 }
 
-function status() {
+function status(ids = []) {
   const settings = config();
   const user = identity();
   const active = records().filter(record => !['complete', 'cancelled', 'MERGED', 'DEFERRED', 'CANCELLED', 'SPLIT'].includes(record.status || record.gate));
-  console.log(`Dev Harness · ${user.name} · ${git(['branch', '--show-current']) || 'detached/unborn'}\nOrchestrator: ${settings.models.orchestrator} (configured)`);
+  const platforms = selected(settings, ids);
+  console.log(`Dev Harness · ${user.name} · ${git(['branch', '--show-current']) || 'detached/unborn'}`);
+  for (const id of platforms) {
+    const model = settings.adapters[id].models.orchestrator;
+    console.log(`${platforms.length === 1 ? '' : `${integrations.lookup(id).label} · `}Orchestrator: ${model.model}${model.effort ? ` · ${model.effort}` : ''} (configured)`);
+  }
   if (!active.length) console.log('No active arcs or workstreams. Describe what you want to build.');
   for (const record of active.sort((a, b) => Number(b.owner.id === user.id) - Number(a.owner.id === user.id))) {
     console.log(`${record.owner.id === user.id ? 'Yours' : record.owner.name} · ${record.id} · ${record.title} · ${record.gate || record.status}\nNext: ${record.next}`);
@@ -226,9 +272,11 @@ function createRecord(kind, arc, title) {
     if (branch !== target) {
       if (branch !== config().git.integrationBranch) throw new Error(`Start a new arc from ${config().git.integrationBranch}, or resume ${target}.`);
       const changes = git(['status', '--porcelain', '--untracked-files=all']).split('\n').filter(Boolean);
+      const plan = artifactPlan();
       const unrelated = changes.map(line => line.slice(3)).filter(path => !(
         path === 'AGENTS.md' || path.startsWith('dev-harness/')
-        || path === '.cursor/skills/dev-harness' || /^\.cursor\/agents\/dev-harness-(planner|reviewer|owner)\.md$/.test(path)
+        || plan.links.some(link => link.path === path)
+        || plan.nativeFiles.some(file => file.path === path)
       ) || /^dev-harness\/(arcs|workstreams)\/.*\.md$/.test(path));
       if (unrelated.length) throw new Error(`Cannot switch to ${target} with unrelated changes: ${unrelated.join(', ')}`);
       const exists = git(['branch', '--list', '--format=%(refname:short)', target]) === target;
@@ -285,6 +333,89 @@ function createRecord(kind, arc, title) {
   console.log(id);
 }
 
+// Dependency policy accepts a deliberately restricted, unambiguous module
+// language. Node checks full syntax; this lexer never evaluates source code.
+function moduleDependencies(bytes, path) {
+  try { execFileSync(process.execPath, ['--input-type=module', '--check'], { input: bytes, stdio: ['pipe', 'pipe', 'pipe'] }); }
+  catch { throw Error(`Invalid baseline module syntax: ${path}`); }
+  const code = bytes.toString('utf8');
+  const tokens = [];
+  const fail = () => { throw Error(`Unsupported baseline module syntax: ${path}`); };
+  let cursor = 0;
+  while (cursor < code.length) {
+    const char = code[cursor];
+    if (/\s/.test(char)) { cursor++; continue; }
+    if (char === '/' && code[cursor + 1] === '/') {
+      cursor += 2; while (cursor < code.length && !/[\r\n\u2028\u2029]/.test(code[cursor])) cursor++;
+      continue;
+    }
+    if (char === '/' && code[cursor + 1] === '*') {
+      const end = code.indexOf('*/', cursor + 2); if (end < 0) fail(); cursor = end + 2; continue;
+    }
+    if (char === '"' || char === "'") {
+      const start = cursor++; let escaped = false;
+      while (cursor < code.length && code[cursor] !== char) {
+        if (code[cursor] === '\\') { escaped = true; cursor += 2; } else cursor++;
+      }
+      if (cursor >= code.length) fail(); cursor++;
+      const raw = code.slice(start, cursor);
+      tokens.push({ kind: 'string', value: raw.slice(1, -1), raw, escaped }); continue;
+    }
+    if (/[A-Za-z_$]/.test(char)) {
+      const start = cursor++; while (cursor < code.length && /[A-Za-z0-9_$]/.test(code[cursor])) cursor++;
+      tokens.push({ kind: 'identifier', value: code.slice(start, cursor) }); continue;
+    }
+    if (char === '`' || char === '/' || char === '\\' || char.charCodeAt(0) > 127 || char.charCodeAt(0) < 32) fail();
+    tokens.push({ kind: 'punctuation', value: char }); cursor++;
+  }
+  const dependencies = [];
+  let index = 0;
+  const value = () => tokens[index]?.value;
+  const consume = expected => { if (value() !== expected) fail(); index++; };
+  const identifier = () => { if (tokens[index]?.kind !== 'identifier') fail(); index++; };
+  const specifier = () => {
+    const token = tokens[index++];
+    if (token?.kind !== 'string' || token.escaped) fail();
+    dependencies.push(token.value);
+  };
+  const list = () => {
+    consume('{');
+    while (value() !== '}') {
+      identifier();
+      if (value() === 'as') { index++; identifier(); }
+      if (value() !== ',') break;
+      index++;
+    }
+    consume('}');
+  };
+  while (index < tokens.length) {
+    const token = tokens[index++];
+    if (token.kind !== 'identifier') continue;
+    if (token.value === 'import') {
+      if (tokens[index]?.kind === 'string') specifier();
+      else {
+        if (tokens[index]?.kind === 'identifier') {
+          identifier();
+          if (value() === ',') index++;
+          else { consume('from'); specifier(); consume(';'); continue; }
+        }
+        if (value() === '{') list();
+        else if (value() === '*') { index++; consume('as'); identifier(); }
+        else fail();
+        consume('from'); specifier();
+      }
+      consume(';');
+    } else if (token.value === 'export') {
+      if (value() === '{') { list(); if (value() === 'from') { index++; specifier(); } consume(';'); }
+      else if (value() === '*') { index++; if (value() === 'as') { index++; identifier(); } consume('from'); specifier(); consume(';'); }
+      else if (['const', 'let', 'var', 'function', 'class', 'default'].includes(value())) index++;
+      else if (value() === 'async') { index++; consume('function'); }
+      else fail();
+    }
+  }
+  return dependencies;
+}
+
 // This entry point is an operational bootstrap. The governing CLI and skill come
 // from the ARC's committed base, never from a candidate WS or ARC revision.
 function pinned(args) {
@@ -337,6 +468,24 @@ function pinned(args) {
   const paths = gitRead(['ls-tree', '-r', '--name-only', sha, '--',
     `${prefix}config.json`, `${prefix}templates`, `${prefix}adapters`, `${prefix}skills`])
     .toString().trim().split('\n').filter(Boolean);
+  const moduleRoot = `${prefix}integrations/`;
+  const modulePaths = gitRead(['ls-tree', '-r', '--name-only', sha, '--', moduleRoot]).toString().trim().split('\n').filter(Boolean);
+  if (modulePaths.length || /function loadIntegrations\(/.test(baselineCli.toString())) {
+    for (const name of ['registry', 'config', 'install', 'cursor']) if (!modulePaths.includes(`${moduleRoot}${name}.mjs`)) throw Error(`Missing baseline integration: ${name}`);
+    for (const path of modulePaths) {
+      if (!path.startsWith(moduleRoot) || !/^[a-zA-Z0-9_./-]+\.mjs$/.test(path) || path.split('/').includes('..')) throw Error(`Unsafe baseline integration: ${path}`);
+      const imports = moduleDependencies(blob(path), path);
+      for (const specifier of imports) {
+        if (specifier.startsWith('node:')) {
+          if (!isBuiltin(specifier)) throw Error(`Unknown baseline builtin: ${specifier}`);
+          continue;
+        }
+        const dependency = relative(root, resolve(root, dirname(path), specifier));
+        if (!/^\.{1,2}\/[a-zA-Z0-9_./-]+\.mjs$/.test(specifier) || !dependency.startsWith(moduleRoot) || !modulePaths.includes(dependency)) throw Error(`Unsafe baseline dependency: ${specifier}`);
+      }
+    }
+    paths.push(...modulePaths);
+  }
   const companions = paths.filter(path => path === `${prefix}config.json`
     || path.startsWith(`${prefix}templates/`) || path.startsWith(`${prefix}adapters/`));
   const required = [
@@ -371,7 +520,9 @@ function pinned(args) {
     for (const path of [cliPath, skillPath, ...paths]) {
       const destination = join(temporary, path);
       mkdirSync(dirname(destination), { recursive: true });
-      writeFileSync(destination, blob(path));
+      const bytes = blob(path);
+      writeFileSync(destination, bytes);
+      if (!readFileSync(destination).equals(bytes)) throw Error(`Extracted baseline differs: ${path}`);
     }
     const result = spawnSync(process.execPath, [join(temporary, cliPath), command, ...rest],
       { cwd: root, encoding: 'utf8' });
@@ -386,19 +537,22 @@ function pinned(args) {
 
 try {
   const [command = 'init', ...args] = process.argv.slice(2);
-  if (command === 'init') init(resolve(args[0] || root));
-  else if (command === 'pinned') pinned(args);
-  else if (command === 'status') status();
-  else if (command === 'check') {
-    const settings = config();
-    for (const role of roles) {
-      const body = readFileSync(join(internal, 'adapters', 'cursor', 'agents', `dev-harness-${role}.md`), 'utf8');
-      if (body.match(/^model: (.+)$/m)?.[1] !== settings.models.subagents) throw new Error('Subagent model differs from config. Rerun init.');
+  if (command === 'pinned') pinned(args);
+  else {
+    await loadIntegrations();
+    if (command === 'init') { const selection = selectors(args, true, true); init(resolve(selection.target || root), selection.ids); }
+    else if (command === 'status') status(selectors(args).ids);
+    else if (command === 'check') {
+      const settings = config();
+      const ids = selected(settings, selectors(args).ids);
+      const shared = records();
+      integrations.checkLinks(root, artifactPlan(root, { ...settings, installedPlatforms: ids }));
+      for (const id of ids) integrations.lookup(id).checkArtifacts({ targetRoot: root, sourceRoot: source, settings: settings.adapters[id], id });
+      console.log(`Valid: ${shared.length} records. Structural validation only.`);
     }
-    console.log(`Valid: ${records().length} records. Structural validation only.`);
+    else if (command === 'new') create(args[0], args[0] === 'workstream' ? args[1] : undefined, args.slice(args[0] === 'workstream' ? 2 : 1).join(' '));
+    else throw new Error('Commands: init [repository] [--platform ID]..., status [--platform ID], new arc|workstream, check [--platform ID], pinned skill|status|check|new workstream');
   }
-  else if (command === 'new') create(args[0], args[0] === 'workstream' ? args[1] : undefined, args.slice(args[0] === 'workstream' ? 2 : 1).join(' '));
-  else throw new Error('Commands: init [repository], status, new arc|workstream, check, pinned skill|status|check|new workstream');
 } catch (error) {
   console.error(`Dev Harness: ${error.message}`);
   process.exitCode = 1;

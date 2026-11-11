@@ -65,6 +65,20 @@ try {
 } finally { rmSync(temporary, { recursive: true, force: true }); }
 ```
 
+Future modular baselines also verify and extract their complete committed
+`integrations/` module dependency set; no candidate module supplies runtime code.
+The initial extracted CLI remains standalone through pinned dispatch.
+Integration authors must use the documented restricted module language: static
+semicolon-terminated imports/export-from declarations with unescaped quoted
+specifiers; no templates, regex literals, slash operations, escaped or non-ASCII
+code identifiers, dynamic imports, import.meta, or import attributes. Comments
+between tokens and Unicode within strings/comments are allowed. Use concatenation
+and `new RegExp(...)`. Node syntax-checks committed modules without executing
+them; dependencies must be real `node:` built-ins or relative `.mjs` files in the
+verified committed integration inventory. Unsupported syntax fails closed.
+Dependency validation is not a sandbox for deliberately executable eval,
+Function, or filesystem behavior in trusted committed code.
+
 The committed dispatcher validates the ARC record against the branch, verifies
 live config/templates/adapters byte for byte and as a file set before commands
 that read them, and runs committed governance from another temporary runtime
@@ -93,7 +107,14 @@ Run commands from the repository root. At session start, run
 `node dev-harness/.harness/cli.mjs status` and present it once using the summary below,
 not the raw CLI output.
 Read `dev-harness/.harness/config.json`, `dev-harness/.harness/knowledge/context.md`, and relevant records.
-Outside a source ARC, after changing the configured subagent model, rerun
+Active platform identity must come from explicit native startup/invocation context;
+never infer it from the installed set. Ask if that context is missing. Version 1
+uses `models.orchestrator` and `models.subagents`. Version 2 uses authoritative
+`adapters[ID].models[ROLE]` settings for that explicit platform; root `models`
+is preserved compatibility data. Unqualified status displays every installed
+configured orchestrator model and shared records once; `--platform ID` narrows
+model display without duplicating or filtering shared records.
+Outside a source ARC, after changing authoritative configured role models, rerun
 `node dev-harness/.harness/cli.mjs init`.
 Check the orchestrator is configured for the requested model. If model identity is not
 observable, ask the user to confirm the picker; do not claim it was verified.
@@ -101,8 +122,12 @@ observable, ask the user to confirm the picker; do not claim it was verified.
 ## Session summary
 
 Use one fenced plain-text ASCII table per active arc, current user's arcs first.
-Show identity and branch once. Label config.models.orchestrator as
-"Orchestrator: <readable model name> (configured)", not a claim about the running model.
+Show identity and branch once. Display the configured orchestrator from
+`models.orchestrator` for version 1, or `adapters[ID].models.orchestrator` for
+version 2. Plain status shows all installed models, labeled by integration when
+multiple are present; an explicit selector shows that integration. Label each
+"Orchestrator: <readable model name> (configured)", never observed runtime identity.
+Shared arcs and workstreams appear once regardless of the model display.
 Use arc titles and exact statuses, not filenames.
 Show the arc owner only when different from the current user. Sort WS rows by sequence;
 use short labels such as WS-01, titles, exact gates, and concise next actions.
@@ -261,8 +286,36 @@ Record approval in Approvals (workstream) or Decisions (arc); never invent appro
 Run `node dev-harness/.harness/cli.mjs check` after updates. It checks structure, not approval authenticity.
 Do not maintain a separate handwritten index. Use status to derive the rollup.
 
-Use the configured subagent model for every delegation, including exploration.
-The Cursor adapter defines planner, reviewer, and owner; launch them in the background.
+Use the active adapter's configured role model for every delegation, including exploration.
+Platform identity comes from explicit native startup/invocation context, never from
+which integrations are installed. If identity is unclear, ask before delegation.
+Use `status --platform ID` and `check --platform ID` for that installed integration;
+shared records and configuration remain validated. Unqualified status shows all
+installed configured orchestrator models and shared records once.
+For Cursor, startup context is `--platform cursor`; planner, reviewer, and owner
+use `.cursor/agents/dev-harness-{planner,reviewer,owner}.md`. Launch them in the background.
+For Codex CLI, follow this only when startup context is explicit `--platform codex`.
+Spawn `dev-harness-planner`, `dev-harness-reviewer`, and `dev-harness-owner` by
+those names, with no alternate model or effort. Use in-session `/subagents` for
+background work. Non-interactive runs use `codex exec` with the configured
+orchestrator model and effort. The parent label must show the model and effort
+from that role's `.codex/agents` file; if it does not, stop that role. Do not
+use owner self-review. Isolate owner work with harness git worktrees, not
+`codex --worktree`. If root `AGENTS.override.md` hides the shared Dev Harness
+block, stop and report it; do not delete the override.
+For Claude Code, follow this only when startup context is explicit `--platform claude-code`.
+Spawn `dev-harness-planner`, `dev-harness-reviewer`, and `dev-harness-owner` by
+those names, with no alternate model or effort. Stop a role whose parent label
+or transcript does not show the configured model and effort. Do not use owner
+self-review. Isolate owner work with harness git worktrees. Project `CLAUDE.md`
+imports the shared `AGENTS.md` block. If a session still does not load that
+block, stop and report it; do not delete ancestor instruction files.
+Other adapters supply their own native startup and delegation guidance through
+the integration contract. Structural capabilities do not establish observed native
+support. If required models, reviewers, or capabilities are unavailable, stop the
+dependent step and report it; never downgrade or substitute owner self-review.
+Version 2 native settings are authoritative in `adapters[ID].models[ROLE]`; legacy
+`models` remains preserved compatibility data. Version 1 uses `models.subagents`.
 Pass paths, revision, scope, and existing authorization explicitly. Only the orchestrator
 updates harness records. Isolate concurrent code owners with worktrees; never let two
 writers edit the same workstream. Detect stale revisions before applying results.
@@ -271,4 +324,5 @@ If a required model or reviewer is unavailable, report it and stop that dependen
 Only arcs/ and workstreams/ stay visible inside dev-harness/; all internals belong
 in its .harness/ directory, except external worktree checkouts. External files may contain only necessary
 entry-point references. Do not commit, push, or merge without the required explicit approval.
+Never add a co-author line to any commit. This binds every Dev Harness agent on every platform.
 Be brief. Users need only arcs, workstreams, and gates.
