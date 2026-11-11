@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-10-14T04:41:32.529Z",
-  "updated": "2026-11-11T07:33:00.000Z",
-  "next": "Commit accepted revision 1, merge WS-05 into the ARC, and run the integrated smoke check.",
+  "updated": "2026-11-11T07:44:00.000Z",
+  "next": "Integrated into the ARC with smoke 46/46 PASS. ARC close and merge to main are next.",
   "arc": "2026-10-13-soner-can--modular-coding-agent-support",
   "sequence": 5,
-  "gate": "USER CONFIRM",
+  "gate": "MERGED",
   "dependencies": [
     "WS-soner-can-04--codex-platform-support"
   ],
@@ -249,15 +249,16 @@ Open decisions blocking IMPLEMENT: none. User accepted reviewed revision 1 fixtu
 
 ## Gate
 
-Current: `USER CONFIRM`. Revision: 1. Independent code review PASS-with-notes. User accepted reviewed fixture evidence. Live Claude Code UAT was not run.
-Next: Commit accepted revision 1, merge WS-05 into the ARC, and run the integrated smoke check.
+Current: `MERGED`. Revision: 1. Integrated at `82e2512b46d0869ef8081870381be807061bdbe6`. Arc smoke 46/46 PASS. Live Claude Code UAT was not run.
+Next: Integrated into the ARC with smoke 46/46 PASS. ARC close and merge to main are next.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
 | RESEARCH | 2026-10-13 | 2026-10-14 | PASS-with-notes; user go |
 | IMPLEMENT | 2026-10-14 | 2026-10-14 | ready-for-review |
 | REVIEW | 2026-10-14 | 2026-10-14 | PASS-with-notes |
-| USER CONFIRM | 2026-10-14 | — | testing offered |
+| USER CONFIRM | 2026-10-14 | 2026-11-11 | user accepted revision 1 fixture evidence |
+| MERGED | 2026-11-11 | — | ARC smoke 46/46 PASS |
 
 ## Verification
 
@@ -311,3 +312,4 @@ from the actual WS worktree before asking for acceptance of the reviewed revisio
 - 2026-10-14T10:14:00.000Z · Owner/Orchestrator · Revision 1 implementation reported ready. Owner 46/46 tests PASS, diff check PASS, frozen companions unchanged, index unchanged. Independent code review opened on the uncommitted worktree. No commit, merge, push, or live Claude UAT.
 - 2026-10-14T10:28:00.000Z · Independent reviewer/Orchestrator · Revision 1 code review PASS-with-notes on the uncommitted worktree. Reviewer did not re-run tests; orchestrator re-ran npm test 46/46 PASS, diff check PASS, and an empty frozen diff. USER CONFIRM entered. No commit, merge, push, or live Claude UAT.
 - 2026-11-11T07:33:00.000Z · User/Orchestrator · User "confirm and close the arc and merge to main" accepted reviewed revision 1 fixture evidence and approved code/record commits, WS-to-ARC merge, ARC smoke checks, ARC close, and merge into main. USER CONFIRM remains until the merge commit. Live Claude Code UAT was not run. No push or worktree cleanup.
+- 2026-11-11T07:44:00.000Z · Orchestrator · Acceptance records 690b401f073bddff9d04d83b639838a0692465c1; code 436d3c94728ef284e66d77eb1af4daed314f1813; WS-to-ARC merge 82e2512b46d0869ef8081870381be807061bdbe6. Integrated npm test 46/46 PASS. Original-baseline structural check PASS. Frozen companions unchanged. Live Claude Code UAT was not run. No main merge or push yet.

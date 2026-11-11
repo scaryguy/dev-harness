@@ -9,8 +9,8 @@
   },
   "revision": 2,
   "created": "2026-10-14T04:37:05.516Z",
-  "updated": "2026-11-11T07:33:00.000Z",
-  "next": "Commit accepted WS-05 revision 1, merge it into the ARC, and run the integrated smoke check. User approved closing this ARC and merging it to main after that verification.",
+  "updated": "2026-11-11T07:44:00.000Z",
+  "next": "User approved closing this ARC and merging it to main. Record that approval, merge, and verify.",
   "status": "in-progress",
   "branch": "arc/2026-10-13-soner-can--modular-coding-agent-support",
   "integrationBranch": "main",
@@ -162,13 +162,13 @@ before implementation.
 Branch: `arc/2026-10-13-soner-can--modular-coding-agent-support` from `main` at
 `718d5b4f3729df96761ef99b63adbcfec2013bae`. No integration merge yet.
 Workstreams were created at the user's explicit request before detailed plan
-review. WS-03 and WS-04 are MERGED. WS-05 revision 1 is in USER CONFIRM.
+review. WS-03, WS-04, and WS-05 are MERGED.
 
 | WS | Gate | Depends on | WS branch | Merge SHA |
 |----|------|------------|-----------|-----------|
 | [WS-03](../workstreams/WS-soner-can-03--modular-adapter-foundation.md) | MERGED | — | `ws/WS-soner-can-03--modular-adapter-foundation` | `6394b4807544b20842aba6748bdbe86ca36a6018` |
 | [WS-04](../workstreams/WS-soner-can-04--codex-platform-support.md) | MERGED | WS-03 MERGED | `ws/WS-soner-can-04--codex-platform-support` | `140affaa3e6d3f3bb58af924df814e6142a39a1d` |
-| [WS-05](../workstreams/WS-soner-can-05--claude-code-platform-support.md) | USER CONFIRM | WS-04 MERGED and verified | `ws/WS-soner-can-05--claude-code-platform-support` | — |
+| [WS-05](../workstreams/WS-soner-can-05--claude-code-platform-support.md) | MERGED | WS-04 MERGED and verified | `ws/WS-soner-can-05--claude-code-platform-support` | `82e2512b46d0869ef8081870381be807061bdbe6` |
 
 ## Integration checklist
 
@@ -226,3 +226,4 @@ review. WS-03 and WS-04 are MERGED. WS-05 revision 1 is in USER CONFIRM.
 - 2026-10-14T10:14:00.000Z · Owner/Orchestrator · WS-05 revision 1 owner reports 46/46 tests PASS and frozen companions unchanged. Code review opened. No commit, merge, or push.
 - 2026-10-14T10:28:00.000Z · Independent reviewer/Orchestrator · WS-05 revision 1 code review PASS-with-notes. Orchestrator re-ran worktree npm test 46/46 PASS and confirmed an empty frozen diff. USER CONFIRM entered. No acceptance, commit, merge, or push.
 - 2026-11-11T07:33:00.000Z · User/Orchestrator · User "confirm and close the arc and merge to main" accepted WS-05 revision 1 fixture evidence and authorized commits, WS-to-ARC merge, smoke checks, ARC close, and merge into main. Live Claude Code UAT was not run. No push or worktree cleanup.
+- 2026-11-11T07:44:00.000Z · Orchestrator · WS-05 acceptance 690b401f073bddff9d04d83b639838a0692465c1; code 436d3c94728ef284e66d77eb1af4daed314f1813; WS-to-ARC merge 82e2512b46d0869ef8081870381be807061bdbe6. Integrated npm test 46/46 PASS. Original-baseline structural check PASS. Frozen companions unchanged. Live Claude Code UAT was not run. No main merge yet.
