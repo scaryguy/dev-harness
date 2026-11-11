@@ -6,6 +6,7 @@ import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, lstatS
 import { tmpdir } from 'node:os';
 import { delimiter, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { safePath } from './integrations/install.mjs';
 
 const cli = join(dirname(fileURLToPath(import.meta.url)), 'cli.mjs');
 function fixture() {
@@ -671,7 +672,7 @@ function modularFixture() {
   const dummy = `import { readFileSync } from 'node:fs';\nimport { join } from 'node:path';\nexport default { id:'dummy', label:'Dummy', defaults:{orchestrator:{model:'dummy-high'},planner:{model:'dummy-high'},reviewer:{model:'dummy-high'},owner:{model:'dummy-low'}}, capabilities:{instructionDiscovery:true,delegation:true,roleSettings:true,externalWorktrees:true,backgroundExecution:true}, validateSettings(s){if(!s?.models?.orchestrator?.model)throw Error('Invalid dummy')}, planArtifacts(){return {files:[{path:'dev-harness/.harness/dummy.md',content:'dummy',ownership:'builtin'}],links:[{path:'.dummy/entry',target:'dev-harness/.harness/dummy.md',type:'file',legacyTargets:[]}]}},checkArtifacts(c){if(readFileSync(join(c.targetRoot,'.dummy/entry'),'utf8')!=='dummy')throw Error('Bad dummy')},startupGuidance(){return 'Dummy ready --platform dummy'}};`;
   writeFileSync(join(runtime, 'integrations/dummy.mjs'), dummy);
   const registry = join(runtime, 'integrations/registry.mjs');
-  writeFileSync(registry, readFileSync(registry, 'utf8').replace("import cursor from './cursor.mjs';", "import cursor from './cursor.mjs';\nimport dummy from './dummy.mjs';").replace('[cursor, codex]', '[cursor, dummy, codex]'));
+  writeFileSync(registry, readFileSync(registry, 'utf8').replace("import cursor from './cursor.mjs';", "import cursor from './cursor.mjs';\nimport dummy from './dummy.mjs';").replace('[cursor, codex, claudeCode]', '[cursor, dummy, codex, claudeCode]'));
   return { root, runtime, execute: (...args) => spawnSync(process.execPath, [join(runtime, 'cli.mjs'), ...args], { cwd: root, encoding: 'utf8' }) };
 }
 
@@ -1042,4 +1043,283 @@ test('a false required capability refuses install before writes', () => {
   const result = execute('init', '--platform', 'dummy');
   assert.match(result.stderr, /Missing required capability: instructionDiscovery/);
   assert.deepEqual(snapshotTree(root), before);
+});
+
+function commandEnvironment(binaries = {}) {
+  const home = mkdtempSync(join(tmpdir(), 'dev-harness-agent-home-'));
+  const bin = join(home, 'bin');
+  mkdirSync(bin);
+  const logs = {};
+  for (const [name, version] of Object.entries(binaries)) {
+    const log = join(mkdtempSync(join(tmpdir(), `dev-harness-${name}-log-`)), 'invocations');
+    logs[name] = log;
+    const script = '#!/bin/sh\nprintf "%s\\n" "$*" >> ' + JSON.stringify(log) + '\nif [ "$1" = "--version" ]; then\n  printf "%s\\n" ' + JSON.stringify(version) + '\n  exit 0\nfi\necho unexpected >&2\nexit 1\n';
+    writeFileSync(join(bin, name), script, { mode: 0o755 });
+  }
+  const env = { ...process.env, HOME: home, USERPROFILE: home, PATH: [bin, gitBin(), '/bin', '/usr/bin'].join(delimiter) };
+  return { home, bin, logs, env };
+}
+function claudeEnvironment(version = '2.1.44 (Claude Code)') {
+  return commandEnvironment({ claude: version, codex: 'codex-cli 0.162.1' });
+}
+const claudeDescriptions = {
+  planner: 'Research and plan a Dev Harness arc or workstream before implementation.',
+  reviewer: 'Independently review a Dev Harness plan or implementation against its approved scope.',
+  owner: 'Implement an approved Dev Harness workstream and verify its outcome.'
+};
+function claudeAgent(role, model, effort) {
+  return '---\n'
+    + `name: dev-harness-${role}\n`
+    + `description: ${claudeDescriptions[role]}\n`
+    + `model: ${model}\n`
+    + `effort: ${effort}\n`
+    + '---\n'
+    + '<!-- dev-harness-managed -->\n'
+    + `Read dev-harness/.harness/skills/dev-harness/SKILL.md and follow the ${role} role boundary.\n`;
+}
+function writeClaudeAgent(root, body) {
+  mkdirSync(join(root, '.claude/agents'), { recursive: true });
+  writeFileSync(join(root, '.claude/agents/dev-harness-planner.md'), body);
+}
+
+test('safePath rejects the dot-slash CLAUDE.md form', () => {
+  assert.throws(() => safePath('./CLAUDE.md'), /Unsafe artifact path/);
+  assert.equal(safePath('CLAUDE.md'), 'CLAUDE.md');
+});
+
+test('cursor-only and codex-only init do not spawn claude', () => {
+  const { home, logs, env } = claudeEnvironment();
+  const homeBefore = snapshotTree(home);
+  for (const args of [['init'], ['init', '--platform', 'cursor']]) {
+    const root = fixture();
+    ok(runWith(root, env, ...args));
+    assert.equal(existsSync(join(root, 'CLAUDE.md')), false);
+    assert.equal(existsSync(join(root, '.claude')), false);
+    assert.equal(existsSync(join(root, '.codex')), false);
+  }
+  assert.deepEqual(invocations(logs.claude), []);
+  assert.deepEqual(invocations(logs.codex), []);
+  const root = fixture();
+  ok(runWith(root, env, 'init', '--platform', 'codex'));
+  assert.equal(existsSync(join(root, 'CLAUDE.md')), false);
+  assert.equal(existsSync(join(root, '.claude')), false);
+  assert.equal(existsSync(join(root, '.codex/agents/dev-harness-owner.toml')) > 0, true);
+  assert.deepEqual(invocations(logs.claude), []);
+  assert.deepEqual(invocations(logs.codex), ['--version']);
+  assert.equal(existsSync(join(home, '.claude')), false);
+  assert.deepEqual(snapshotTree(home), homeBefore);
+});
+
+test('claude-code init installs only Claude Code and refreshes exact CLAUDE.md plus a stale agent', () => {
+  const { home, logs, env } = claudeEnvironment();
+  const homeBefore = snapshotTree(home);
+  const root = fixture();
+  const installed = ok(runWith(root, env, 'init', '--platform', 'claude-code'));
+  assert.match(installed, /claude --model opus --effort high/);
+  assert.match(installed, /claude -p --model opus --effort high/);
+  assert.match(installed, /Start dev harness\. Use --platform claude-code\./);
+  assert.equal(existsSync(join(root, '.cursor')), false);
+  assert.equal(existsSync(join(root, '.codex')), false);
+  assert.equal(existsSync(join(root, '.claude/CLAUDE.md')), false);
+  assert.equal(existsSync(join(home, '.claude')), false);
+  assert.equal(readFileSync(join(root, 'CLAUDE.md'), 'utf8'), '@AGENTS.md\n');
+  assert.equal(readlinkSync(join(root, '.claude/skills/dev-harness')), '../../dev-harness/.harness/skills/dev-harness');
+  assert.equal(lstatSync(join(root, '.claude/skills/dev-harness')).isSymbolicLink(), true);
+  for (const role of ['planner', 'reviewer', 'owner']) {
+    const body = readFileSync(join(root, '.claude/agents', `dev-harness-${role}.md`), 'utf8');
+    assert.equal(body, claudeAgent(role, 'opus', role === 'owner' ? 'low' : 'high'));
+    assert.equal(/^(tools|permissionMode|isolation):/m.test(body), false);
+  }
+  assert.deepEqual(readdirSync(join(root, '.claude/agents')).sort(), ['dev-harness-owner.md', 'dev-harness-planner.md', 'dev-harness-reviewer.md']);
+  assert.deepEqual(readdirSync(join(root, '.claude')).sort(), ['agents', 'skills']);
+  const configPath = join(root, 'dev-harness/.harness/config.json');
+  const settings = JSON.parse(readFileSync(configPath, 'utf8'));
+  assert.equal(settings.version, 2);
+  assert.deepEqual(settings.installedPlatforms, ['claude-code']);
+  assert.equal(settings.adapters.cursor, undefined);
+  assert.equal(settings.adapters.codex, undefined);
+  assert.deepEqual(settings.adapters['claude-code'].models, {
+    orchestrator: { model: 'opus', effort: 'high' },
+    planner: { model: 'opus', effort: 'high' },
+    reviewer: { model: 'opus', effort: 'high' },
+    owner: { model: 'opus', effort: 'low' }
+  });
+  assert.match(readFileSync(join(root, '.claude/skills/dev-harness/SKILL.md'), 'utf8'), /do not delete ancestor instruction files/);
+  assert.deepEqual(invocations(logs.claude), ['--version']);
+  assert.deepEqual(invocations(logs.codex), []);
+  assert.deepEqual(snapshotTree(home), homeBefore);
+  const first = snapshotTree(root);
+  ok(runWith(root, env, 'init'));
+  assert.deepEqual(snapshotTree(root), first);
+  assert.equal(ok(runWith(root, env, 'new', 'arc', 'Claude records')).endsWith('--claude-records'), true);
+
+  const instruction = readFileSync(join(root, 'CLAUDE.md'));
+  const planner = join(root, '.claude/agents/dev-harness-planner.md');
+  writeFileSync(join(root, 'CLAUDE.md'), instruction);
+  writeFileSync(planner, '---\nname: dev-harness-planner\ndescription: stale\nmodel: stale-model\neffort: max\n---\n<!-- dev-harness-managed -->\nstale body\n');
+  settings.adapters['claude-code'].models.orchestrator = { model: 'sonnet', effort: 'medium' };
+  settings.adapters['claude-code'].models.planner = { model: 'custom-planner', effort: 'max' };
+  writeFileSync(configPath, JSON.stringify(settings));
+  const refreshed = ok(runWith(root, env, 'init'));
+  assert.match(refreshed, /claude --model sonnet --effort medium/);
+  assert.match(refreshed, /claude -p --model sonnet --effort medium/);
+  assert.deepEqual(readFileSync(join(root, 'CLAUDE.md')), instruction);
+  assert.equal(readFileSync(planner, 'utf8'), claudeAgent('planner', 'custom-planner', 'max'));
+  assert.equal(readFileSync(join(root, '.claude/agents/dev-harness-owner.md'), 'utf8'), claudeAgent('owner', 'opus', 'low'));
+  const stable = snapshotTree(root);
+  ok(runWith(root, env, 'init'));
+  assert.deepEqual(snapshotTree(root), stable);
+  settings.adapters['claude-code'].models.owner.model = 'opus"quoted';
+  writeFileSync(configPath, JSON.stringify(settings));
+  const quotedBefore = snapshotTree(root);
+  const quoted = runWith(root, env, 'init');
+  assert.match(quoted.stderr, /Invalid Claude Code model settings/);
+  assert.deepEqual(snapshotTree(root), quotedBefore);
+  assert.deepEqual(snapshotTree(home), homeBefore);
+  assert.equal(existsSync(join(home, '.claude')), false);
+});
+
+test('claude-code adds onto Cursor and Codex and narrows status and check', () => {
+  const { home, logs, env } = claudeEnvironment();
+  const homeBefore = snapshotTree(home);
+  const root = fixture();
+  ok(runWith(root, env, 'init'));
+  const configPath = join(root, 'dev-harness/.harness/config.json');
+  const cursorSettings = JSON.parse(readFileSync(configPath, 'utf8'));
+  cursorSettings.models.orchestrator = 'grok-4.7[effort=xhigh]';
+  cursorSettings.models.subagents = 'custom-cursor-model';
+  writeFileSync(configPath, JSON.stringify(cursorSettings));
+  ok(runWith(root, env, 'init', '--platform', 'codex'));
+  const codexToml = readFileSync(join(root, '.codex/agents/dev-harness-reviewer.toml'));
+  const cursorAgent = readFileSync(join(root, '.cursor/agents/dev-harness-owner.md'), 'utf8');
+  ok(runWith(root, env, 'init', '--platform', 'claude-code'));
+  const both = JSON.parse(readFileSync(configPath, 'utf8'));
+  assert.deepEqual(both.installedPlatforms, ['cursor', 'codex', 'claude-code']);
+  assert.equal(both.adapters.cursor.models.orchestrator.model, 'grok-4.7[effort=xhigh]');
+  assert.equal(both.adapters.cursor.models.owner.model, 'custom-cursor-model');
+  assert.equal(both.models.subagents, 'custom-cursor-model');
+  assert.deepEqual(both.adapters.codex.models.owner, { model: 'gpt-6.1-sol', effort: 'low' });
+  assert.deepEqual(both.adapters['claude-code'].models.orchestrator, { model: 'opus', effort: 'high' });
+  assert.deepEqual(both.adapters['claude-code'].models.owner, { model: 'opus', effort: 'low' });
+  assert.deepEqual(readFileSync(join(root, '.codex/agents/dev-harness-reviewer.toml')), codexToml);
+  assert.equal(readFileSync(join(root, '.cursor/agents/dev-harness-owner.md'), 'utf8'), cursorAgent);
+  assert.equal(readlinkSync(join(root, '.cursor/skills/dev-harness')), '../../dev-harness/.harness/skills/dev-harness');
+  assert.equal(readlinkSync(join(root, '.agents/skills/dev-harness')), '../../dev-harness/.harness/skills/dev-harness');
+  assert.equal(readlinkSync(join(root, '.claude/skills/dev-harness')), '../../dev-harness/.harness/skills/dev-harness');
+  assert.equal(readFileSync(join(root, 'CLAUDE.md'), 'utf8'), '@AGENTS.md\n');
+  assert.equal(readFileSync(join(root, '.claude/agents/dev-harness-reviewer.md'), 'utf8'), claudeAgent('reviewer', 'opus', 'high'));
+  assert.equal(existsSync(join(root, '.claude/CLAUDE.md')), false);
+  const callsBeforeReads = { claude: invocations(logs.claude).length, codex: invocations(logs.codex).length };
+  const status = ok(runWith(root, env, 'status'));
+  assert.deepEqual(status.split('\n').filter(line => line.includes('Orchestrator:')), [
+    'Cursor · Orchestrator: grok-4.7[effort=xhigh] (configured)',
+    'Codex · Orchestrator: gpt-6.1-sol · high (configured)',
+    'Claude Code · Orchestrator: opus · high (configured)'
+  ]);
+  const arc = ok(runWith(root, env, 'new', 'arc', 'Shared record'));
+  const shared = ok(runWith(root, env, 'status'));
+  assert.equal(shared.split('\n').filter(line => line.includes(` · ${arc} · `)).length, 1);
+  const narrow = ok(runWith(root, env, 'status', '--platform', 'claude-code'));
+  assert.match(narrow, /Orchestrator: opus · high \(configured\)/);
+  assert.match(narrow, /Shared record/);
+  assert.doesNotMatch(narrow, /Cursor|Codex|grok|gpt-6\.1-sol/);
+  assert.match(ok(runWith(root, env, 'check', '--platform', 'claude-code')), /Valid: 1 records/);
+  const cursorLink = join(root, '.cursor/skills/dev-harness');
+  unlinkSync(cursorLink);
+  writeFileSync(cursorLink, 'not a link');
+  assert.match(ok(runWith(root, env, 'check', '--platform', 'claude-code')), /Valid: 1 records/);
+  assert.notEqual(runWith(root, env, 'check').status, 0);
+  unlinkSync(cursorLink);
+  symlinkSync('../../dev-harness/.harness/skills/dev-harness', cursorLink, 'dir');
+  const ownerPath = join(root, '.claude/agents/dev-harness-owner.md');
+  const ownerBody = readFileSync(ownerPath, 'utf8');
+  both.adapters['claude-code'].models.owner.model = 'other-model';
+  writeFileSync(configPath, JSON.stringify(both));
+  assert.notEqual(runWith(root, env, 'check', '--platform', 'claude-code').status, 0);
+  assert.equal(readFileSync(ownerPath, 'utf8'), ownerBody);
+  both.adapters['claude-code'].models.owner.model = 'opus';
+  writeFileSync(configPath, JSON.stringify(both));
+  const instruction = readFileSync(join(root, 'CLAUDE.md'), 'utf8');
+  writeFileSync(join(root, 'CLAUDE.md'), '@AGENTS.md\nextra\n');
+  assert.notEqual(runWith(root, env, 'check', '--platform', 'claude-code').status, 0);
+  writeFileSync(join(root, 'CLAUDE.md'), instruction);
+  const record = join(root, 'dev-harness/arcs', `${arc}.md`);
+  writeFileSync(record, 'bad');
+  assert.notEqual(runWith(root, env, 'check', '--platform', 'claude-code').status, 0);
+  assert.equal(invocations(logs.claude).length, callsBeforeReads.claude);
+  assert.equal(invocations(logs.codex).length, callsBeforeReads.codex);
+  assert.deepEqual(snapshotTree(home), homeBefore);
+});
+
+test('claude and codex marker collisions refuse before any write', () => {
+  const cases = [
+    ['unmarked agent', '2.1.44 (Claude Code)', 'claude-code', root => writeClaudeAgent(root, '---\nname: dev-harness-planner\n---\nUser agent\n'), /managed marker/],
+    ['first line is not frontmatter', '2.1.44 (Claude Code)', 'claude-code', root => writeClaudeAgent(root, '# dev-harness-managed\n<!-- dev-harness-managed -->\n'), /managed marker/],
+    ['comment not on first body line', '2.1.44 (Claude Code)', 'claude-code', root => writeClaudeAgent(root, '---\nname: dev-harness-planner\n---\nFollow the planner role boundary.\n<!-- dev-harness-managed -->\n'), /managed marker/],
+    ['codex html comment', '2.1.44 (Claude Code)', 'codex', root => { mkdirSync(join(root, '.codex/agents'), { recursive: true }); writeFileSync(join(root, '.codex/agents/dev-harness-planner.toml'), '<!-- dev-harness-managed -->\n'); }, /managed marker/],
+    ['codex frontmatter', '2.1.44 (Claude Code)', 'codex', root => { mkdirSync(join(root, '.codex/agents'), { recursive: true }); writeFileSync(join(root, '.codex/agents/dev-harness-planner.toml'), '---\nname: dev-harness-planner\n---\n<!-- dev-harness-managed -->\n'); }, /managed marker/],
+    ['non-exact CLAUDE.md', '2.1.44 (Claude Code)', 'claude-code', root => writeFileSync(join(root, 'CLAUDE.md'), '# Project\n@AGENTS.md\n'), /managed marker/],
+    ['older version', '2.1.43 (Claude Code)', 'claude-code', root => root, /2\.1\.44 or newer/],
+    ['unparsable version', '2.1.44', 'claude-code', root => root, /Unparsable Claude Code CLI version/],
+    ['directory CLAUDE.md', '2.1.44 (Claude Code)', 'claude-code', root => mkdirSync(join(root, 'CLAUDE.md')), /Native file is occupied/],
+    ['directory agent', '2.1.44 (Claude Code)', 'claude-code', root => mkdirSync(join(root, '.claude/agents/dev-harness-owner.md'), { recursive: true }), /Native file is occupied/]
+  ];
+  for (const [name, version, platform, prepare, pattern] of cases) {
+    const { home, logs, env } = claudeEnvironment(version);
+    const homeBefore = snapshotTree(home);
+    const root = fixture();
+    prepare(root);
+    const before = snapshotTree(root);
+    const result = runWith(root, env, 'init', '--platform', platform);
+    assert.notEqual(result.status, 0, name);
+    assert.match(result.stderr, pattern, name);
+    assert.deepEqual(snapshotTree(root), before, name);
+    assert.deepEqual(snapshotTree(home), homeBefore, name);
+    assert.equal(existsSync(join(home, '.claude')), false, name);
+    const other = platform === 'claude-code' ? 'codex' : 'claude';
+    assert.deepEqual(invocations(logs[other]), [], name);
+  }
+  const missing = commandEnvironment({ codex: 'codex-cli 0.162.1' });
+  const missingHome = snapshotTree(missing.home);
+  const missingRoot = fixture();
+  const missingBefore = snapshotTree(missingRoot);
+  const unavailable = runWith(missingRoot, missing.env, 'init', '--platform', 'claude-code');
+  assert.match(unavailable.stderr, /Claude Code CLI is unavailable/);
+  assert.deepEqual(snapshotTree(missingRoot), missingBefore);
+  assert.deepEqual(snapshotTree(missing.home), missingHome);
+  assert.equal(existsSync(join(missing.bin, 'claude')), false);
+  for (const [name, link] of [['symlink CLAUDE.md', 'CLAUDE.md'], ['symlink agent', '.claude/agents/dev-harness-owner.md']]) {
+    const sentinelDir = mkdtempSync(join(tmpdir(), 'claude-sentinel-'));
+    const sentinel = join(sentinelDir, 'user.md');
+    writeFileSync(sentinel, 'user content\n');
+    const linked = fixture();
+    mkdirSync(dirname(join(linked, link)), { recursive: true });
+    symlinkSync(sentinel, join(linked, link));
+    const linkedBefore = snapshotTree(linked);
+    const { home, env } = claudeEnvironment();
+    const homeBefore = snapshotTree(home);
+    assert.match(runWith(linked, env, 'init', '--platform', 'claude-code').stderr, /Native file is occupied/, name);
+    assert.deepEqual(snapshotTree(linked), linkedBefore, name);
+    assert.equal(readFileSync(sentinel, 'utf8'), 'user content\n', name);
+    assert.deepEqual(snapshotTree(home), homeBefore, name);
+  }
+});
+
+test('a false Claude Code capability refuses install before writes', () => {
+  const root = fixture();
+  const runtime = mkdtempSync(join(tmpdir(), 'dev-harness-claude-runtime-'));
+  cpSync(dirname(cli), runtime, { recursive: true });
+  const path = join(runtime, 'integrations/claude-code.mjs');
+  const source = readFileSync(path, 'utf8');
+  const updated = source.replace('instructionDiscovery: true', 'instructionDiscovery: false');
+  assert.notEqual(updated, source);
+  writeFileSync(path, updated);
+  const { home, logs, env } = claudeEnvironment();
+  const homeBefore = snapshotTree(home);
+  const before = snapshotTree(root);
+  const result = spawnSync(process.execPath, [join(runtime, 'cli.mjs'), 'init', '--platform', 'claude-code'], { cwd: root, encoding: 'utf8', env });
+  assert.match(result.stderr, /Missing required capability: instructionDiscovery/);
+  assert.deepEqual(invocations(logs.claude), []);
+  assert.deepEqual(snapshotTree(root), before);
+  assert.deepEqual(snapshotTree(home), homeBefore);
 });

@@ -303,6 +303,13 @@ from that role's `.codex/agents` file; if it does not, stop that role. Do not
 use owner self-review. Isolate owner work with harness git worktrees, not
 `codex --worktree`. If root `AGENTS.override.md` hides the shared Dev Harness
 block, stop and report it; do not delete the override.
+For Claude Code, follow this only when startup context is explicit `--platform claude-code`.
+Spawn `dev-harness-planner`, `dev-harness-reviewer`, and `dev-harness-owner` by
+those names, with no alternate model or effort. Stop a role whose parent label
+or transcript does not show the configured model and effort. Do not use owner
+self-review. Isolate owner work with harness git worktrees. Project `CLAUDE.md`
+imports the shared `AGENTS.md` block. If a session still does not load that
+block, stop and report it; do not delete ancestor instruction files.
 Other adapters supply their own native startup and delegation guidance through
 the integration contract. Structural capabilities do not establish observed native
 support. If required models, reviewers, or capabilities are unavailable, stop the
