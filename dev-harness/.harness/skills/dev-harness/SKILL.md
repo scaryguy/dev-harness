@@ -324,4 +324,5 @@ If a required model or reviewer is unavailable, report it and stop that dependen
 Only arcs/ and workstreams/ stay visible inside dev-harness/; all internals belong
 in its .harness/ directory, except external worktree checkouts. External files may contain only necessary
 entry-point references. Do not commit, push, or merge without the required explicit approval.
+Never add a co-author line to any commit. This binds every Dev Harness agent on every platform.
 Be brief. Users need only arcs, workstreams, and gates.

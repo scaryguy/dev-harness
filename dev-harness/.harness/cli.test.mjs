@@ -65,6 +65,8 @@ test('setup preserves instructions, config, unrelated Cursor files, and reruns s
   ok(run(root, 'init'));
   const instructions = readFileSync(join(root, 'AGENTS.md'), 'utf8');
   assert.match(instructions, /^# Existing rules\nKeep these./);
+  assert.match(instructions, /Never add a co-author line to any commit\./);
+  assert.match(readFileSync(join(root, 'dev-harness', '.harness', 'skills', 'dev-harness', 'SKILL.md'), 'utf8'), /Never add a co-author line to any commit\. This binds every Dev Harness agent on every platform\./);
   assert.equal(readlinkSync(join(root, '.cursor', 'skills', 'dev-harness')), '../../dev-harness/.harness/skills/dev-harness');
   assert.deepEqual(readdirSync(join(root, 'dev-harness')).sort(), ['.harness', 'arcs', 'workstreams']);
   const settingsPath = join(root, 'dev-harness', '.harness', 'config.json');
@@ -458,6 +460,7 @@ test('source ARC keeps committed skill and CLI through candidate WS merge and fi
   assert.match(before, /git show BASE_SHA:dev-harness\/\.harness\/skills\/dev-harness\/SKILL.md/);
   assert.match(before, /before following live instructions/);
   assert.match(before, /Never invoke the live candidate CLI's pinned dispatcher/);
+  assert.match(before, /Never add a co-author line to any commit\./);
   execFileSync('git', ['switch', '-qc', 'ws/fixture-candidate'], { cwd: source.root });
   writeFileSync(source.localCli, readFileSync(source.localCli, 'utf8').replaceAll('BASELINE STATUS', 'CANDIDATE STATUS').replaceAll('BASELINE CHECK', 'CANDIDATE CHECK'));
   writeFileSync(source.skill, 'CANDIDATE SKILL\n');
