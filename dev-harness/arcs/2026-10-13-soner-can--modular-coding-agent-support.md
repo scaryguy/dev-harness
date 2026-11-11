@@ -9,8 +9,8 @@
   },
   "revision": 2,
   "created": "2026-10-14T04:37:05.516Z",
-  "updated": "2026-10-14T09:35:00.000Z",
-  "next": "Review the WS-05 Claude Code contract, then implement after PASS. WS-04 is MERGED and smoke-verified.",
+  "updated": "2026-11-11T07:33:00.000Z",
+  "next": "Commit accepted WS-05 revision 1, merge it into the ARC, and run the integrated smoke check. User approved closing this ARC and merging it to main after that verification.",
   "status": "in-progress",
   "branch": "arc/2026-10-13-soner-can--modular-coding-agent-support",
   "integrationBranch": "main",
@@ -93,6 +93,11 @@ before implementation.
 
 ## Decisions
 
+- 2026-11-11T07:33:00.000Z · User · "confirm and close the arc and merge to main" accepts
+  reviewed WS-05 revision 1 fixture evidence and authorizes its code/record commits,
+  WS-to-ARC merge, ARC smoke checks, ARC close, and merge into main. Live Claude
+  Code UAT was not run. No push or worktree cleanup.
+
 - 2026-10-14T09:25:00.000Z · User · "merge and continue with 05, run contract review, implement
   and have it ready" accepts the WS-04 merge above and asks for the WS-05
   contract review. Implementation of WS-05 starts only after that review passes.
@@ -157,13 +162,13 @@ before implementation.
 Branch: `arc/2026-10-13-soner-can--modular-coding-agent-support` from `main` at
 `718d5b4f3729df96761ef99b63adbcfec2013bae`. No integration merge yet.
 Workstreams were created at the user's explicit request before detailed plan
-review. WS-03 and WS-04 are MERGED. WS-05 remains RESEARCH pending its contract review.
+review. WS-03 and WS-04 are MERGED. WS-05 revision 1 is in USER CONFIRM.
 
 | WS | Gate | Depends on | WS branch | Merge SHA |
 |----|------|------------|-----------|-----------|
 | [WS-03](../workstreams/WS-soner-can-03--modular-adapter-foundation.md) | MERGED | — | `ws/WS-soner-can-03--modular-adapter-foundation` | `6394b4807544b20842aba6748bdbe86ca36a6018` |
 | [WS-04](../workstreams/WS-soner-can-04--codex-platform-support.md) | MERGED | WS-03 MERGED | `ws/WS-soner-can-04--codex-platform-support` | `140affaa3e6d3f3bb58af924df814e6142a39a1d` |
-| [WS-05](../workstreams/WS-soner-can-05--claude-code-platform-support.md) | RESEARCH | WS-04 MERGED and verified | Planned; not created | — |
+| [WS-05](../workstreams/WS-soner-can-05--claude-code-platform-support.md) | USER CONFIRM | WS-04 MERGED and verified | `ws/WS-soner-can-05--claude-code-platform-support` | — |
 
 ## Integration checklist
 
@@ -217,3 +222,7 @@ review. WS-03 and WS-04 are MERGED. WS-05 remains RESEARCH pending its contract 
 - 2026-10-14T08:05:00.000Z · Independent reviewer/Orchestrator · WS-04 revision 1 code review PASS. Orchestrator re-ran worktree npm test 40/40 PASS. USER CONFIRM entered. No acceptance, commit, merge, or push.
 - 2026-10-14T09:25:00.000Z · User/Orchestrator · User "merge" accepted WS-04 revision 1 and authorized commits, WS-to-ARC merge, and smoke checks. No main merge or push.
 - 2026-10-14T09:35:00.000Z · Orchestrator · WS-04 merged at 140affaa3e6d3f3bb58af924df814e6142a39a1d. Arc npm test 40/40 PASS. Original-baseline structural check PASS. Frozen companions unchanged. WS-05 remains RESEARCH. No main merge or push.
+- 2026-10-14T09:53:03.000Z · Independent reviewer/Orchestrator · WS-05 revision 1 contract re-review PASS-with-notes. IMPLEMENT entered at parent 9cf4128ec697e903be34b1a82b63831224848de2. No commit, merge, or push.
+- 2026-10-14T10:14:00.000Z · Owner/Orchestrator · WS-05 revision 1 owner reports 46/46 tests PASS and frozen companions unchanged. Code review opened. No commit, merge, or push.
+- 2026-10-14T10:28:00.000Z · Independent reviewer/Orchestrator · WS-05 revision 1 code review PASS-with-notes. Orchestrator re-ran worktree npm test 46/46 PASS and confirmed an empty frozen diff. USER CONFIRM entered. No acceptance, commit, merge, or push.
+- 2026-11-11T07:33:00.000Z · User/Orchestrator · User "confirm and close the arc and merge to main" accepted WS-05 revision 1 fixture evidence and authorized commits, WS-to-ARC merge, smoke checks, ARC close, and merge into main. Live Claude Code UAT was not run. No push or worktree cleanup.

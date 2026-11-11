@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-10-14T04:41:32.529Z",
-  "updated": "2026-10-14T09:35:00.000Z",
-  "next": "WS-04 MERGED and verified; review the Claude Code CLI contract, then implement only after that review passes.",
+  "updated": "2026-11-11T07:33:00.000Z",
+  "next": "Commit accepted revision 1, merge WS-05 into the ARC, and run the integrated smoke check.",
   "arc": "2026-10-13-soner-can--modular-coding-agent-support",
   "sequence": 5,
-  "gate": "RESEARCH",
+  "gate": "USER CONFIRM",
   "dependencies": [
     "WS-soner-can-04--codex-platform-support"
   ],
@@ -52,6 +52,75 @@
     "mergeCommit": "140affaa3e6d3f3bb58af924df814e6142a39a1d",
     "date": "2026-10-14T09:35:00.000Z",
     "smoke": "40/40 PASS"
+  },
+  "researchState": "approved",
+  "researchReview": {
+    "revision": 1,
+    "outcome": "PASS-with-notes",
+    "reviewer": "grok-4.7[effort=high]",
+    "date": "2026-10-14T09:52:00.000Z",
+    "notes": "Family-specific marker predicates. Claude agents require a leading --- and the managed comment on the first body line. Project CLAUDE.md bytes are exactly @AGENTS.md plus LF. Path is CLAUDE.md, not ./CLAUDE.md."
+  },
+  "implementationApproval": {
+    "revision": 1,
+    "actor": "User",
+    "date": "2026-10-14T09:25:00.000Z",
+    "scope": "WS-05 IMPLEMENT only, after contract review PASS",
+    "evidence": "merge and continue with 05, run contract review, implement and have it ready till I wake up"
+  },
+  "implementationState": "reviewed",
+  "implementationEvidence": {
+    "revision": 1,
+    "reportedBy": "grok-4.7[effort=high]",
+    "date": "2026-10-14T10:14:00.000Z",
+    "worktree": "/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-05--claude-code-platform-support",
+    "startingSha": "9cf4128ec697e903be34b1a82b63831224848de2",
+    "npmTest": "46/46 PASS; original 40 retained",
+    "diffCheck": "PASS",
+    "frozenCompanions": "empty diff and no untracked files",
+    "index": "unchanged",
+    "cliMjs": "unchanged; existing assertReady gate reused",
+    "liveClaude": "not run"
+  },
+  "codeReview": {
+    "revision": 1,
+    "outcome": "PASS-with-notes",
+    "reviewer": "grok-4.7[effort=high]",
+    "date": "2026-10-14T10:23:00.000Z",
+    "worktree": "/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-05--claude-code-platform-support",
+    "startingSha": "9cf4128ec697e903be34b1a82b63831224848de2",
+    "limits": "Reviewer read the uncommitted tree. Shell was blocked, so npm test and the frozen diff were not re-run by the reviewer. Orchestrator re-ran npm test 46/46 PASS, git diff --check PASS, and an empty frozen diff at 2026-10-14T10:28:00.000Z. No live Claude UAT."
+  },
+  "userTesting": {
+    "revision": 1,
+    "state": "offered",
+    "worktree": "/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-05--claude-code-platform-support",
+    "command": "npm test",
+    "expected": "46 tests PASS",
+    "nativeRuntime": "not verified",
+    "server": "not applicable; CLI/package fixtures",
+    "acceptedDate": "2026-11-11T07:33:00.000Z"
+  },
+  "acceptance": {
+    "revision": 1,
+    "actor": "User",
+    "date": "2026-11-11T07:33:00.000Z",
+    "evidence": "confirm and close the arc and merge to main",
+    "scope": "Accept reviewed revision 1 fixture evidence and authorize code/record commits, WS-to-ARC merge, ARC smoke checks, ARC close, and merge into main. Live Claude Code UAT was not run. No push or worktree cleanup."
+  },
+  "checkout": {
+    "branch": "ws/WS-soner-can-05--claude-code-platform-support",
+    "parentBranch": "arc/2026-10-13-soner-can--modular-coding-agent-support",
+    "parentSha": "9cf4128ec697e903be34b1a82b63831224848de2",
+    "worktree": "../dev-harness-worktrees/WS-soner-can-05--claude-code-platform-support/"
+  },
+  "cursorSessionLaunch": {
+    "platform": "cursor",
+    "orchestrator": "grok-4.7[effort=high]",
+    "planner": "grok-4.7[effort=high]",
+    "reviewer": "grok-4.7[effort=high]",
+    "owner": "grok-4.7[effort=high]",
+    "source": "harness models.orchestrator and models.subagents"
   }
 }
 ---
@@ -64,13 +133,12 @@
 
 ## Checkout
 
-Planned WS branch: `ws/WS-soner-can-05--claude-code-platform-support`.
-Parent: `arc/2026-10-13-soner-can--modular-coding-agent-support`.
-Planned external worktree: `../dev-harness-worktrees/WS-soner-can-05--claude-code-platform-support/`.
-Resolved planned path: `/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-05--claude-code-platform-support`.
-These are planned locations; no WS branch or worktree has been created.
-Create them only after RESEARCH review PASS, user IMPLEMENT approval, and dependency
-merges. Record the actual parent tip then.
+WS branch: `ws/WS-soner-can-05--claude-code-platform-support`.
+Parent: `arc/2026-10-13-soner-can--modular-coding-agent-support` at
+`9cf4128ec697e903be34b1a82b63831224848de2`.
+External worktree: `../dev-harness-worktrees/WS-soner-can-05--claude-code-platform-support/`.
+Resolved: `/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-05--claude-code-platform-support`.
+Created after RESEARCH PASS-with-notes and user IMPLEMENT approval.
 
 The ARC checkout owns authoritative records under
 `/Users/scaryguy/Projects/dev-harness/dev-harness/`; owner-worktree record copies
@@ -170,25 +238,26 @@ independent review; explicit implementation/integration approval; source governa
 pinned to ARC baseSha. Existing shipped Grok defaults are not changed by this
 session's agent assignments.
 
-Open decisions blocking IMPLEMENT:
+Accepted contract, revision 1, after CHANGES-REQUESTED and re-review PASS-with-notes:
+- CLI floor Claude Code 2.1.44 or newer. IDE, desktop, Chrome, and cloud are out.
+- Project `CLAUDE.md` bytes are exactly `@AGENTS.md` plus LF. Any other project file is refused. Ancestor instruction files stay.
+- Claude agents start with `---` and the first body line is exactly `<!-- dev-harness-managed -->`.
+- Codex files still refresh only when they start with `# dev-harness-managed` and a line ending. The HTML comment does not authorize a Codex write.
+- Defaults are the documented alias `opus` with high effort for orchestrator, planner, and reviewer, and low for owner.
 
-- Supported Claude Code versions and interaction modes.
-- Verified native discovery/delegation/model/effort capabilities and model defaults.
-- Required capability behavior and platform-specific installation/conflicts.
-- Live smoke-test environment and acceptance workflow.
-
-The adapter split and implementation steps remain a draft proposal. The user
-decisions above are locked; remaining defaults are unapproved. No plan-review
-PASS or per-WS RESEARCH PASS is asserted.
+Open decisions blocking IMPLEMENT: none. User accepted reviewed revision 1 fixture evidence on 2026-11-11 and authorized the WS-to-ARC merge, ARC close, and merge to main. Live Claude Code UAT was not run. No push or worktree cleanup is authorized.
 
 ## Gate
 
-Current: `RESEARCH`. Revision: 1. Review pending; implementation not authorized.
-Next: Await verified WS-04 MERGED; define Claude Code scope, review revision 1, and obtain IMPLEMENT approval.
+Current: `USER CONFIRM`. Revision: 1. Independent code review PASS-with-notes. User accepted reviewed fixture evidence. Live Claude Code UAT was not run.
+Next: Commit accepted revision 1, merge WS-05 into the ARC, and run the integrated smoke check.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
-| RESEARCH | 2026-10-13 | — | Review pending |
+| RESEARCH | 2026-10-13 | 2026-10-14 | PASS-with-notes; user go |
+| IMPLEMENT | 2026-10-14 | 2026-10-14 | ready-for-review |
+| REVIEW | 2026-10-14 | 2026-10-14 | PASS-with-notes |
+| USER CONFIRM | 2026-10-14 | — | testing offered |
 
 ## Verification
 
@@ -220,8 +289,16 @@ from the actual WS worktree before asking for acceptance of the reviewed revisio
 
 - 2026-10-13 · User authorized WS record creation and the development-agent
   model/effort assignments above.
-- Revision 1 is a draft in RESEARCH. No implementation, commit, merge, push,
-  or reviewed-revision acceptance has been authorized. No review outcome exists.
+- 2026-10-14T09:52:00.000Z · Independent reviewer · Grok 4.7 High · Revision 1
+  contract re-review PASS-with-notes after CHANGES-REQUESTED. Implementation
+  still requires the user go-ahead below. No commit, merge, or push.
+- 2026-10-14T09:25:00.000Z · User · "implement and have it ready" approves WS-05
+  revision 1 IMPLEMENT after contract review PASS. No WS-to-ARC merge, push, or
+  main integration.
+- 2026-11-11T07:33:00.000Z · User · "confirm and close the arc and merge to main"
+  accepts reviewed revision 1 fixture evidence and authorizes code/record commits,
+  WS-to-ARC merge, ARC smoke checks, ARC close, and merge into main. Live Claude
+  Code UAT was not run. No push or worktree cleanup.
 
 ## Progress ledger
 
@@ -230,3 +307,7 @@ from the actual WS worktree before asking for acceptance of the reviewed revisio
 
 - 2026-10-14T04:50:49.728Z · Orchestrator · Recorded user decisions: coexistence, Codex CLI-only, explicit additive installation, and installed Codex per-role model/effort defaults. Draft remains unreviewed in RESEARCH; no IMPLEMENT authorization.
 - 2026-10-14T09:35:00.000Z · Orchestrator · WS-04 prerequisite satisfied at ARC merge 140affaa3e6d3f3bb58af924df814e6142a39a1d, smoke 40/40 PASS. This WS remains RESEARCH. User asked for contract review and, after PASS, implementation left ready. No review outcome or IMPLEMENT entry yet.
+- 2026-10-14T09:53:03.000Z · Independent reviewer/Orchestrator · Revision 1 contract re-review PASS-with-notes. User IMPLEMENT approval applied. Worktree created at parent 9cf4128ec697e903be34b1a82b63831224848de2. No commit, merge, or push.
+- 2026-10-14T10:14:00.000Z · Owner/Orchestrator · Revision 1 implementation reported ready. Owner 46/46 tests PASS, diff check PASS, frozen companions unchanged, index unchanged. Independent code review opened on the uncommitted worktree. No commit, merge, push, or live Claude UAT.
+- 2026-10-14T10:28:00.000Z · Independent reviewer/Orchestrator · Revision 1 code review PASS-with-notes on the uncommitted worktree. Reviewer did not re-run tests; orchestrator re-ran npm test 46/46 PASS, diff check PASS, and an empty frozen diff. USER CONFIRM entered. No commit, merge, push, or live Claude UAT.
+- 2026-11-11T07:33:00.000Z · User/Orchestrator · User "confirm and close the arc and merge to main" accepted reviewed revision 1 fixture evidence and approved code/record commits, WS-to-ARC merge, ARC smoke checks, ARC close, and merge into main. USER CONFIRM remains until the merge commit. Live Claude Code UAT was not run. No push or worktree cleanup.
