@@ -34,20 +34,26 @@ Rerun init to refresh built-in instructions; configuration, knowledge, and recor
 Delete `dev-harness/`, its marked block in `AGENTS.md`, and its four links
 under `.cursor/skills/` and `.cursor/agents/`. For a Codex install, also remove
 `.agents/skills/dev-harness` and the three
-`.codex/agents/dev-harness-{planner,reviewer,owner}.toml` files.
+`.codex/agents/dev-harness-{planner,reviewer,owner}.toml` files. For a Claude
+Code install, also remove the managed `CLAUDE.md` import,
+`.claude/skills/dev-harness`, and the three
+`.claude/agents/dev-harness-{planner,reviewer,owner}.md` files. Leave every
+other instruction file in place.
 
-Initial scaffold: Cursor setup, Codex CLI setup, record creation, status, and validation work.
-Gate approvals are agent-managed. Automatic enforcement, Claude Code, and non-CLI Codex surfaces come later.
+Initial scaffold: Cursor setup, Codex CLI setup, Claude Code setup, record creation, status, and validation work.
+Gate approvals are agent-managed. Automatic enforcement and non-CLI Codex surfaces come later.
 After npm publication, use `npx @scaryguy/dev-harness init`.
 Contributors can test locally with `npm pack`
 and run `npx --package=/path/to/package.tgz dev-harness init` in a test project.
 
-Install explicitly with `dev-harness init [repository] --platform cursor` or
-`--platform codex`. Repeated `--platform ID` flags are additive and idempotent.
+Install explicitly with `dev-harness init [repository] --platform cursor`,
+`--platform codex`, or `--platform claude-code`. Repeated `--platform ID`
+flags are additive and idempotent.
 Fresh unqualified init keeps the compatible version 1 Cursor setup. Existing
 unqualified init refreshes all installed integrations. Installation does not
 invoke a native agent or model. `codex --version` is only a version floor for
-`--platform codex`, not platform acceptance.
+`--platform codex`, and `claude --version` is only a version floor for
+`--platform claude-code`. Neither probe is platform acceptance.
 
 Codex CLI support requires `codex-cli` 0.162.1 or newer. It writes four project
 artifacts and does not write `~/.codex`:
@@ -60,16 +66,37 @@ artifacts and does not write `~/.codex`:
 Init replaces a Codex agent file only when that file begins with
 `# dev-harness-managed`. Neighboring project files stay in place.
 
+Claude Code support requires Claude Code 2.1.44 or newer. The accepted local
+version text is `2.1.44 (Claude Code)`, or a newer leading version in that
+same form. It writes five project artifacts and does not write `~/.claude`,
+`.claude/CLAUDE.md`, or a second instruction file:
+
+- `CLAUDE.md`, whose bytes are exactly `@AGENTS.md` plus one LF
+- `.claude/skills/dev-harness`, a directory symlink to `dev-harness/.harness/skills/dev-harness`
+- `.claude/agents/dev-harness-planner.md`
+- `.claude/agents/dev-harness-reviewer.md`
+- `.claude/agents/dev-harness-owner.md`
+
+Init creates a missing Claude file. It replaces a Claude agent only when line 1
+is `---` and the first line after the closing `---` is exactly
+`<!-- dev-harness-managed -->`. It replaces `CLAUDE.md` only when the existing
+bytes are exactly `@AGENTS.md` plus one LF. A directory, symlink, unmarked
+agent, comment in any other position, or any other `CLAUDE.md` contents refuses
+the install before any write. The `claude --version` probe is not platform
+acceptance, and install does not invoke a native agent.
+
 Explicit selection writes version 2 configuration. Edit native settings in
-`dev-harness/.harness/config.json` at `adapters.cursor.models` or
-`adapters.codex.models`, with `orchestrator`, `planner`, `reviewer`, and `owner`
-model objects. Codex roles use separate `model` and `effort` strings. First
-install uses `gpt-6.1-sol` with high effort for orchestrator, planner, and
-reviewer, and low effort for owner. Existing adapter settings win over those
-defaults. Legacy fields and opaque extensions remain preserved; version 2
-adapter settings control rendering. Cursor strings are opaque, including
-embedded effort syntax. Unknown settings do not install platforms; unsupported
-selections are rejected.
+`dev-harness/.harness/config.json` at `adapters.cursor.models`,
+`adapters.codex.models`, or `adapters.claude-code.models`, with `orchestrator`,
+`planner`, `reviewer`, and `owner` model objects. Codex and Claude Code roles
+use separate `model` and `effort` strings. Codex first install uses
+`gpt-6.1-sol` with high effort for orchestrator, planner, and reviewer, and
+low effort for owner. Claude Code first install uses `opus` with high effort
+for orchestrator, planner, and reviewer, and low effort for owner. Existing
+adapter settings win over those defaults. Legacy fields and opaque extensions
+remain preserved; version 2 adapter settings control rendering. Cursor strings
+are opaque, including embedded effort syntax. Unknown settings do not install
+platforms; unsupported selections are rejected.
 
 Launch the configured Codex orchestrator, then start Dev Harness with
 `--platform codex`. The first-install lines are:
@@ -81,10 +108,21 @@ codex exec --model gpt-6.1-sol --config model_reasoning_effort="high"
 
 Later inits render those commands from `adapters.codex.models.orchestrator`.
 
+Launch the configured Claude Code orchestrator, then start Dev Harness with
+`--platform claude-code`. The first-install lines are:
+
+```sh
+claude --model opus --effort high
+claude -p --model opus --effort high
+```
+
+Later inits render those commands from `adapters.claude-code.models.orchestrator`.
+
 `dev-harness status` shows every installed configured orchestrator model and
-shared records once. `status --platform cursor` or `status --platform codex`
-narrows model display; `check --platform cursor` or `check --platform codex`
-narrows native checks while still validating shared configuration and records. These commands never migrate configuration. Active platform identity comes from
+shared records once. `status --platform cursor`, `status --platform codex`, or
+`status --platform claude-code` narrows model display; `check --platform cursor`,
+`check --platform codex`, or `check --platform claude-code` narrows native
+checks while still validating shared configuration and records. These commands never migrate configuration. Active platform identity comes from
 explicit native startup/invocation context, never the installed set. Configured
 model values describe intent; they do not verify the running native model.
 

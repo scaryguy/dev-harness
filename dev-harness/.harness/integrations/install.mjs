@@ -1,6 +1,42 @@
 import { lstatSync, readFileSync, readlinkSync } from 'node:fs';
 import { dirname, join, relative, posix } from 'node:path';
 import { lookup } from './registry.mjs';
+const codexMarker = '# dev-harness-managed';
+const claudeComment = '<!-- dev-harness-managed -->';
+const claudeInstruction = '@AGENTS.md\n';
+function codexManaged(body) {
+  return body.startsWith(codexMarker + '\n') || body.startsWith(codexMarker + '\r\n');
+}
+function claudeLines(body) {
+  return body.split('\n').map(line => line.endsWith('\r') ? line.slice(0, -1) : line);
+}
+function claudeAgentManaged(body) {
+  const lines = claudeLines(body);
+  if (lines[0] !== '---') return false;
+  let close = -1;
+  for (let index = 1; index < lines.length; index++) {
+    if (lines[index] === '---') { close = index; break; }
+  }
+  if (close < 0 || lines[close + 1] !== claudeComment) return false;
+  for (let index = 0; index < lines.length; index++) if (lines[index] === claudeComment && index !== close + 1) return false;
+  return true;
+}
+function claudeInstructionManaged(body) {
+  return body === claudeInstruction;
+}
+function nativeFamily(path) {
+  if (path === 'CLAUDE.md') return 'claude-instruction';
+  if (path.startsWith('.claude/agents/') && path.endsWith('.md')) return 'claude-agent';
+  if (path.startsWith('.codex/agents/') && path.endsWith('.toml')) return 'codex';
+  return '';
+}
+function nativeManaged(path, body) {
+  const family = nativeFamily(path);
+  if (family === 'codex') return codexManaged(body);
+  if (family === 'claude-agent') return claudeAgentManaged(body);
+  if (family === 'claude-instruction') return claudeInstructionManaged(body);
+  return false;
+}
 export function stat(path) { try { return lstatSync(path); } catch (error) { if (error.code === 'ENOENT') return null; throw error; } }
 export function safePath(path) {
   if (typeof path !== 'string' || !path || path === '.' || path.includes('\0') || path.includes('\\') || posix.normalize(path) !== path || path.startsWith('/') || path === '..' || path.startsWith('../')) throw Error('Unsafe artifact path: ' + (path));
@@ -37,7 +73,7 @@ export function planArtifacts(targetRoot, sourceRoot, config) {
     for (const file of plan.nativeFiles || []) {
       safePath(file.path);
       if (file.path === 'AGENTS.md' || file.path === 'dev-harness' || file.path.startsWith('dev-harness/')) throw Error('Native files must stay outside the harness.');
-      if (typeof file.content !== 'string' || !file.content.startsWith('# dev-harness-managed\n')) throw Error('Invalid native artifact.');
+      if (typeof file.content !== 'string' || !nativeManaged(file.path, file.content)) throw Error('Invalid native artifact.');
       result.nativeFiles.push(file);
       nativePaths.push(file.path);
     }
@@ -67,7 +103,7 @@ export function preflightNatives(targetRoot, plan) {
     if (!item) continue;
     if (item.isSymbolicLink() || !item.isFile()) throw Error('Native file is occupied: ' + file.path);
     const body = readFileSync(path, 'utf8');
-    if (!body.startsWith('# dev-harness-managed\n') && !body.startsWith('# dev-harness-managed\r\n')) throw Error('Native file lacks the managed marker: ' + file.path);
+    if (!nativeManaged(file.path, body)) throw Error('Native file lacks the managed marker: ' + file.path);
   }
 }
 export function preflight(targetRoot, plan) {
