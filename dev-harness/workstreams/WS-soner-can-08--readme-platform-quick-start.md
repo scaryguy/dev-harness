@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-11-13T11:26:07.749Z",
-  "updated": "2026-11-13T11:26:07.000Z",
-  "next": "WS RESEARCH review of revision 1; then implement.",
+  "updated": "2026-11-13T11:26:40.000Z",
+  "next": "Owner applies the README text; then code review.",
   "arc": "2026-11-12-soner-can--self-hosted-shipped-defaults",
   "sequence": 8,
-  "gate": "RESEARCH",
+  "gate": "IMPLEMENT",
   "dependencies": [
     "WS-soner-can-07--platform-scoped-session-status"
   ],
@@ -35,6 +35,15 @@
     "date": "2026-11-13T11:26:07.000Z",
     "scope": "Docs-only WS-08 README platform quick-start, after reviews PASS",
     "evidence": "go (reply to WS-08 proposal)"
+  },
+  "researchState": "approved",
+  "implementationState": "in-progress",
+  "researchReview": {
+    "revision": 1,
+    "outcome": "PASS-with-notes",
+    "reviewer": "opus[effort=high]",
+    "date": "2026-11-13T11:26:40.000Z",
+    "notes": "Apply both the replacement block and the 'launch guidance' wording edit; confirm checks the README says 'launch guidance'."
   }
 }
 ---
@@ -47,7 +56,8 @@
 
 ## Checkout
 
-Fill after RESEARCH review: WS branch `ws/WS-soner-can-08--readme-platform-quick-start` from the arc tip; worktree `../dev-harness-worktrees/WS-soner-can-08--readme-platform-quick-start/`.
+WS branch: `ws/WS-soner-can-08--readme-platform-quick-start` from `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` @ ARCTIP.
+Worktree: `../dev-harness-worktrees/WS-soner-can-08--readme-platform-quick-start/`.
 
 ## Scope and approach
 
@@ -114,11 +124,12 @@ asserted at `cli.test.mjs:912`, `:1146`); npx line unchanged until npm publicati
 
 ## Gate
 
-Current: `RESEARCH`. Next action: WS RESEARCH review of revision 1.
+Current: `IMPLEMENT`. Next action: owner applies the README text; then code review.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
-| RESEARCH | 2026-11-13 | — | — |
+| RESEARCH | 2026-11-13 | 2026-11-13 | PASS-with-notes |
+| IMPLEMENT | 2026-11-13 | — | — |
 
 ## Verification
 
@@ -131,6 +142,7 @@ no "Cursor discovery links" leftover; all non-README files unchanged vs the WS b
 - [ ] README Install shows Cursor, Codex CLI, and Claude Code quick-starts that match what init prints.
 - [ ] Side-by-side installs and per-session platform display are explained.
 - [ ] Entry-point line names every platform's discovery files.
+- [ ] README says "Init prints the launch guidance for your configured models."
 
 ## Approvals
 
@@ -141,3 +153,4 @@ no "Cursor discovery links" leftover; all non-README files unchanged vs the WS b
 
 - 2026-11-13T11:26:07.749Z · Soner Can · Created.
 - 2026-11-13T11:26:07.000Z · Orchestrator · Revision 1 contract recorded from plan r1 with review notes; WS RESEARCH review next.
+- 2026-11-13T11:26:40.000Z · Reviewer (opus, high) · WS RESEARCH review r1 PASS-with-notes. IMPLEMENT entered; WS branch/worktree created.

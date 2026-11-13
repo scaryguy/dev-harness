@@ -9,8 +9,8 @@
   },
   "revision": 3,
   "created": "2026-11-13T04:43:49.390Z",
-  "updated": "2026-11-13T11:26:07.000Z",
-  "next": "WS-08 RESEARCH review; arc smoke after WS-07 running.",
+  "updated": "2026-11-13T11:26:40.000Z",
+  "next": "WS-08 IMPLEMENT; arc smoke after WS-07 running.",
   "status": "in-progress",
   "branch": "arc/2026-11-12-soner-can--self-hosted-shipped-defaults",
   "integrationBranch": "main",
@@ -101,7 +101,7 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 |----|------|------------|-----------|-----------|
 | [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md) | MERGED | — | `ws/WS-soner-can-06--shipped-default-config-separation` | `d332a9f886edd80c9294e9c5a4e8fb673d179039` |
 | [WS-07](../workstreams/WS-soner-can-07--platform-scoped-session-status.md) | MERGED | WS-06 MERGED | `ws/WS-soner-can-07--platform-scoped-session-status` | `523a2860592e227f968551ffa4026acdabeb899b` |
-| [WS-08](../workstreams/WS-soner-can-08--readme-platform-quick-start.md) | RESEARCH | WS-07 MERGED | — | — |
+| [WS-08](../workstreams/WS-soner-can-08--readme-platform-quick-start.md) | IMPLEMENT | WS-07 MERGED | `ws/WS-soner-can-08--readme-platform-quick-start` | — |
 
 ## Integration checklist
 
@@ -141,3 +141,4 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 - 2026-11-13T11:22:07.000Z · User/Orchestrator · WS-07 confirmed ("yeah seems to have worked") and merged into arc as 523a286; baseline pinned checks pass; full npm test running.
 - 2026-11-13T11:23:48.000Z · User · ARC scope change approved: docs-only WS-08 README platform quick-start (ARC revision 3).
 - 2026-11-13T11:26:07.000Z · Reviewer/Orchestrator · WS-08 plan r1 PASS-with-notes; WS-08 created via baseline pinned dispatcher.
+- 2026-11-13T11:26:40.000Z · Orchestrator · WS-08 RESEARCH review PASS-with-notes; WS-08 entered IMPLEMENT.
