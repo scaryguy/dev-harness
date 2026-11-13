@@ -7,10 +7,10 @@
     "name": "Soner Can",
     "id": "6a1feac13060"
   },
-  "revision": 1,
+  "revision": 2,
   "created": "2026-11-13T04:43:49.390Z",
-  "updated": "2026-11-13T06:15:27.000Z",
-  "next": "WS-06 USER CONFIRM: user tests and confirms.",
+  "updated": "2026-11-13T09:36:20.000Z",
+  "next": "WS-07 RESEARCH review; WS-06 USER CONFIRM (WS-07 branches after WS-06 merges).",
   "status": "in-progress",
   "branch": "arc/2026-11-12-soner-can--self-hosted-shipped-defaults",
   "integrationBranch": "main",
@@ -62,7 +62,7 @@ the package ships, so this repo can dogfood any platform without changing fresh-
 | Source-checkout init changing shipped files | silently rewrites | fails closed before any write |
 | Repo's own Claude Code install | not possible safely | post-integration step on main |
 
-In scope: one WS, [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md). Out of scope:
+In scope: [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md). Out of scope:
 changing any platform default models, relocating Cursor agent rendering, changing this ARC's pinned governance, any
 self-install inside the ARC (config.json/templates/adapters are frozen baseline companions).
 
@@ -82,6 +82,10 @@ Locked:
 
 - 2026-11-13T04:46:31.000Z · User: approved implementation of WS-06 revision 1, locking arc scope as recorded (evidence: "continue").
 
+- 2026-11-13T09:20:50.000Z · User ("go"): ARC scope change — add WS-07 "Platform-scoped session status" after WS-06 merges. Agent sessions show only their own platform; a plain human terminal still shows all installed platforms. Plain `status`/`check` identify the platform from native runtime environment markers (e.g. `CLAUDECODE` for Claude Code; Cursor/Codex markers to be confirmed in research); explicit `--platform` always wins; an unidentifiable agent session asks the user rather than guessing. Supersedes 2026-10-14 decisions (modular ARC) that unqualified status shows all installed integrations in every context and that there is no platform autodetection. Trigger: user testing WS-06 build in Claude Code saw the Cursor orchestrator line.
+
+- 2026-11-13T09:33:01.000Z · User ("update it then!?", after being asked to accept or adjust WS-07 decisions 1–4): accepted recommended defaults and directed implementation of WS-07 (subject to plan review and WS RESEARCH review PASS). Markers: Claude Code `CLAUDE_CODE_CHILD_SESSION=1`, Cursor `CURSOR_AGENT`, Codex `CODEX_THREAD_ID`; no `CLAUDECODE` fallback. (1) marker for an uninstalled platform → no orchestrator line + not-installed notice, check covers config/shared records, exit 0; (2) multiple markers → no orchestrator lines + ambiguity notice; (3) no marker with several installed → show all + hint; (4) no CLAUDECODE fallback.
+
 Open: none.
 
 ## Branch and rollup
@@ -92,6 +96,7 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 | WS | Gate | Depends on | WS branch | Merge SHA |
 |----|------|------------|-----------|-----------|
 | [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md) | USER CONFIRM | — | `ws/WS-soner-can-06--shipped-default-config-separation` | — |
+| [WS-07](../workstreams/WS-soner-can-07--platform-scoped-session-status.md) | RESEARCH | WS-06 MERGED | — | — |
 
 ## Integration checklist
 
@@ -101,8 +106,9 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 - [ ] User approved integration of the reviewed revision.
 - [ ] Post-integration, separately approved: on clean `main`, `node dev-harness/.harness/cli.mjs init --platform claude-code`;
   commit `config.json`, `CLAUDE.md`, `.claude/agents/dev-harness-{planner,reviewer,owner}.md`, `.claude/skills/dev-harness`
-  together (no attribution trailer); verify per WS-06 Verification (including `npm test` without `claude` on PATH and a
-  throwaway ARC's pinned checks from a fresh clone).
+  and the refreshed root `AGENTS.md` managed block together (no attribution trailer); verify per WS-06 Verification
+  (including `npm test` without `claude` on PATH and a throwaway ARC's pinned checks from a fresh clone) and that the root
+  `AGENTS.md` block bytes equal the new `sourceEntry` with only that block changed (WS-07).
 
 ## Progress ledger
 
@@ -118,3 +124,7 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 - 2026-11-13T05:23:21.000Z · Orchestrator · WS-06 code review CHANGES-REQUESTED; returned to IMPLEMENT.
 - 2026-11-13T05:41:33.000Z · Orchestrator · WS-06 re-entered REVIEW.
 - 2026-11-13T06:15:27.000Z · Orchestrator · WS-06 code review PASS-with-notes; WS-06 in USER CONFIRM.
+- 2026-11-13T09:20:50.000Z · User · ARC scope change approved: WS-07 platform-scoped session status (revision 2 of ARC scope). Planning next.
+- 2026-11-13T09:33:01.000Z · User · WS-07 decisions 1–4 accepted as recommended; implementation directed ("update it then!?"). Plan review started.
+- 2026-11-13T09:36:20.000Z · Reviewer (opus, high) · WS-07 plan r1 CHANGES-REQUESTED; r2 PASS-with-notes.
+- 2026-11-13T09:36:20.000Z · Orchestrator · WS-07 created via baseline pinned dispatcher; post-integration checklist adds root AGENTS.md refresh.
