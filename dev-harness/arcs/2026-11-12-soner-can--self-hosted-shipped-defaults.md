@@ -9,8 +9,8 @@
   },
   "revision": 4,
   "created": "2026-11-13T04:43:49.390Z",
-  "updated": "2026-11-13T11:50:34.000Z",
-  "next": "WS-09 README status wording; then final smoke, integrate into main and push.",
+  "updated": "2026-11-13T11:51:26.000Z",
+  "next": "Final arc smoke, then integrate into main and push (user-approved).",
   "status": "in-progress",
   "branch": "arc/2026-11-12-soner-can--self-hosted-shipped-defaults",
   "integrationBranch": "main",
@@ -106,11 +106,11 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 | [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md) | MERGED | — | `ws/WS-soner-can-06--shipped-default-config-separation` | `d332a9f886edd80c9294e9c5a4e8fb673d179039` |
 | [WS-07](../workstreams/WS-soner-can-07--platform-scoped-session-status.md) | MERGED | WS-06 MERGED | `ws/WS-soner-can-07--platform-scoped-session-status` | `523a2860592e227f968551ffa4026acdabeb899b` |
 | [WS-08](../workstreams/WS-soner-can-08--readme-platform-quick-start.md) | MERGED | WS-07 MERGED | `ws/WS-soner-can-08--readme-platform-quick-start` | `7eb7e7ac3254c12104f4bebe357ac5e8a52700c0` |
-| [WS-09](../workstreams/WS-soner-can-09--readme-status-wording.md) | IMPLEMENT | WS-08 MERGED | `ws/WS-soner-can-09--readme-status-wording` | — |
+| [WS-09](../workstreams/WS-soner-can-09--readme-status-wording.md) | MERGED | WS-08 MERGED | `ws/WS-soner-can-09--readme-status-wording` | `f297137518e71daf01f7a8497e7f75c2fe8f4baf` |
 
 ## Integration checklist
 
-- [ ] Workstreams completed or explicitly deferred.
+- [x] Workstreams completed or explicitly deferred.
 - [ ] Arc smoke tests after each WS merge and final integration checks passed (npm test; baseline `pinned skill`,
   `pinned status`, `pinned check`; frozen paths identical to baseSha; `npm pack` contents).
 - [x] User approved integration of the reviewed revision ("once passed, merge all and push main", 2026-11-13T11:44:20.000Z).
@@ -151,3 +151,4 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 - 2026-11-13T11:44:20.000Z · Orchestrator · WS-08 code review PASS; merged into arc as 7eb7e7a; baseline pinned checks pass. Final arc smoke running.
 - 2026-11-13T11:49:59.000Z · User · ARC scope change: WS-09 README status wording (ARC revision 4).
 - 2026-11-13T11:50:34.000Z · Orchestrator · WS-09 RESEARCH review PASS-with-notes; IMPLEMENT.
+- 2026-11-13T11:51:26.000Z · Orchestrator · WS-09 code review PASS; merged into arc as f297137. All ARC workstreams merged.

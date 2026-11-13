@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-11-13T11:49:59.918Z",
-  "updated": "2026-11-13T11:50:34.000Z",
-  "next": "Owner applies the README wording; then code review.",
+  "updated": "2026-11-13T11:51:26.000Z",
+  "next": "None; merged into the arc.",
   "arc": "2026-11-12-soner-can--self-hosted-shipped-defaults",
   "sequence": 9,
-  "gate": "IMPLEMENT",
+  "gate": "MERGED",
   "dependencies": [
     "WS-soner-can-08--readme-platform-quick-start"
   ],
@@ -31,13 +31,31 @@
     "evidence": "remove that scaffolding thing it's more than scaffold it worksing!"
   },
   "researchState": "approved",
-  "implementationState": "in-progress",
+  "implementationState": "reviewed",
   "researchReview": {
     "revision": 1,
     "outcome": "PASS-with-notes",
     "reviewer": "opus[effort=high]",
     "date": "2026-11-13T11:50:34.000Z",
     "notes": "Say 'Gate approvals and reviews are agent-managed' so reviews are not read as CLI-enforced."
+  },
+  "codeReview": {
+    "revision": 1,
+    "outcome": "PASS",
+    "reviewer": "opus[effort=high]",
+    "date": "2026-11-13T11:51:26.000Z",
+    "notes": "Reviewer note that the contract body kept the old sentence was a misread (line 61 is the replaced text; lines 67-69 hold the new wording)."
+  },
+  "userConfirm": {
+    "revision": 1,
+    "actor": "User",
+    "date": "2026-11-13T11:51:26.000Z",
+    "scope": "Merge WS-09 into the arc under the standing 'merge all' approval",
+    "evidence": "remove that scaffolding thing… (directive) + once passed, merge all and push main"
+  },
+  "merge": {
+    "wsCommit": "8732d54bcb6757420b9c3d0868b166c6cb539310",
+    "arcMerge": "f297137518e71daf01f7a8497e7f75c2fe8f4baf"
   }
 }
 ---
@@ -82,12 +100,15 @@ enforcement and non-CLI Codex surfaces planned) — existing documented facts, n
 
 ## Gate
 
-Current: `IMPLEMENT`. Next action: owner applies the README wording; then code review.
+Current: `MERGED` (into the arc). Next action: none.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
 | RESEARCH | 2026-11-13 | 2026-11-13 | PASS-with-notes |
-| IMPLEMENT | 2026-11-13 | — | — |
+| IMPLEMENT | 2026-11-13 | 2026-11-13 | ready-for-review |
+| REVIEW | 2026-11-13 | 2026-11-13 | PASS |
+| USER CONFIRM | 2026-11-13 | 2026-11-13 | Standing "merge all" approval |
+| MERGED | 2026-11-13 | — | merge f297137 |
 
 ## Verification
 
@@ -95,7 +116,7 @@ README diff limited to that paragraph; no other file changed; `git diff --check`
 
 ## User confirm checklist
 
-- [ ] README no longer calls the harness a scaffold; limitations remain stated.
+- [x] README no longer calls the harness a scaffold; limitations remain stated.
 
 ## Approvals
 
@@ -106,3 +127,5 @@ README diff limited to that paragraph; no other file changed; `git diff --check`
 - 2026-11-13T11:49:59.918Z · Soner Can · Created.
 - 2026-11-13T11:49:59.000Z · Orchestrator · Revision 1 contract recorded.
 - 2026-11-13T11:50:34.000Z · Reviewer (opus, high) · WS RESEARCH review PASS-with-notes; wording note folded in. IMPLEMENT entered.
+- 2026-11-13T11:51:26.000Z · Owner/Reviewer · README wording applied (+3/−2); code review PASS.
+- 2026-11-13T11:51:26.000Z · Orchestrator · WS commit 8732d54; merged into arc as f297137; frozen paths + AGENTS.md identical to e7aabbc.
