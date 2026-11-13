@@ -82,8 +82,9 @@ Code install, also remove the managed `CLAUDE.md` import,
 `.claude/agents/dev-harness-{planner,reviewer,owner}.md` files. Leave every
 other instruction file in place.
 
-Initial scaffold: Cursor setup, Codex CLI setup, Claude Code setup, record creation, status, and validation work.
-Gate approvals are agent-managed. Automatic enforcement and non-CLI Codex surfaces come later.
+Works today with Cursor, Codex CLI, and Claude Code: setup, arcs, workstreams, gates,
+independent reviews, status, and validation. Gate approvals and reviews are
+agent-managed; automatic enforcement and non-CLI Codex surfaces are planned.
 After npm publication, use `npx @scaryguy/dev-harness init`.
 Contributors can test locally with `npm pack`
 and run `npx --package=/path/to/package.tgz dev-harness init` in a test project.
