@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-11-13T04:44:15.218Z",
-  "updated": "2026-11-13T04:50:03.000Z",
-  "next": "Owner implements revision 1 in the WS worktree; then independent code review.",
+  "updated": "2026-11-13T06:15:27.000Z",
+  "next": "User tests the checklist and confirms revision 1 (or requests the case-folding fix), then merge WS-06 into the arc.",
   "arc": "2026-11-12-soner-can--self-hosted-shipped-defaults",
   "sequence": 6,
-  "gate": "IMPLEMENT",
+  "gate": "USER CONFIRM",
   "dependencies": [],
   "agentModels": {
     "platform": "claude-code",
@@ -36,7 +36,33 @@
     "date": "2026-11-13T04:50:03.000Z",
     "notes": "Owner notes: clone fixture (cli.test.mjs:143-168) must also copy defaults/ and stay hermetic after self-install; mutated-repo-config tests use a temporary package copy, never the live config.json; 'today's output' = output of the baseline CLI extracted from e7aabbc (or fixed expected bytes derived from it); defaults/config.json is validated with normalize() as well as JSON parse (fail closed); guarded set source is an owner implementation detail given the agreement test; Q2 tamper/delete comparison normalizes generated IDs/timestamps for `new`; package-contents test also asserts CLAUDE.md and .claude/ absent."
   },
-  "implementationState": "in-progress"
+  "implementationState": "reviewed",
+  "implementationEvidence": {
+    "revision": 1,
+    "reportedBy": "opus[effort=low]",
+    "date": "2026-11-13T05:41:33.000Z",
+    "startingRevision": "4a915fc",
+    "summary": "Owner-reported after review fixes: npm test 58/58 in worktree (normal PATH) and 58/58 in a self-installed disposable clone (no claude on PATH), 0 skipped; frozen paths diff-clean vs e7aabbc. New: source-checkout init refuses unless dev-harness/.harness/config.json exists. Not yet independently verified."
+  },
+  "codeReview": {
+    "revision": 1,
+    "outcome": "PASS-with-notes",
+    "reviewer": "opus[effort=high]",
+    "date": "2026-11-13T06:15:27.000Z",
+    "worktree": "/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-06--shipped-default-config-separation (4a915fc + unstaged)",
+    "notes": "Case-insensitive filesystems: an adapter planning a differently-cased shipped path (e.g. .harness/Templates/arc.md) passes both the collision check (install.mjs:87-88) and the shipped-file guard (cli.mjs:101), which compare exact strings. Requires adapter code; collision layer has the same gap at baseline e7aabbc.",
+    "verified": "Reviewer ran: full npm test 58/58 on worktree copy (final round); 58/58 on self-installed clone without claude (prior round, unaffected by test-only change); baseline pinned skill/status/check on simulated merge; frozen paths diff-clean vs e7aabbc; defaults/config.json cmp-identical; layer probes.",
+    "history": [
+      {
+        "outcome": "CHANGES-REQUESTED",
+        "date": "2026-11-12"
+      },
+      {
+        "outcome": "PASS-with-notes (guard test passed for wrong reason; fixed)",
+        "date": "2026-11-12"
+      }
+    ]
+  }
 }
 ---
 
@@ -49,7 +75,7 @@
 ## Checkout
 
 WS branch: `ws/WS-soner-can-06--shipped-default-config-separation` from
-`arc/2026-11-12-soner-can--self-hosted-shipped-defaults` @ `f6ccbb7` (records commit follows).
+`arc/2026-11-12-soner-can--self-hosted-shipped-defaults` @ `4a915fc`.
 Worktree: `../dev-harness-worktrees/WS-soner-can-06--shipped-default-config-separation/`.
 
 ## Scope and approach
@@ -111,12 +137,16 @@ Open: none.
 
 ## Gate
 
-Current: `IMPLEMENT`. Next action: owner implements revision 1; then independent code review.
+Current: `USER CONFIRM`. Next action: user tests and confirms revision 1; then merge into the arc.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
 | RESEARCH | 2026-11-12 | 2026-11-12 | PASS-with-notes |
-| IMPLEMENT | 2026-11-12 | — | — |
+| IMPLEMENT | 2026-11-12 | 2026-11-12 | ready-for-review |
+| REVIEW | 2026-11-12 | 2026-11-12 | CHANGES-REQUESTED |
+| IMPLEMENT | 2026-11-12 | 2026-11-12 | ready-for-review |
+| REVIEW | 2026-11-12 | 2026-11-12 | PASS-with-notes |
+| USER CONFIRM | 2026-11-12 | — | — |
 
 ## Verification
 
@@ -145,6 +175,8 @@ Post-integration self-install verification (arc checklist): `git status` shows o
 temp-repo init config byte-identical to `defaults/config.json`; throwaway ARC from a fresh clone of new main passes
 baseline `pinned skill/status/check` and `pinned check --platform claude-code`.
 
+User test handoff: worktree `/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-06--shipped-default-config-separation`; no server — run `npm test` there (~12 min) or the manual init checks in disposable temp repos with `node <worktree>/dev-harness/.harness/cli.mjs init [--platform ID]`. Requirements: Node 20+, git, npm; no `claude`/`codex` needed.
+
 ## User confirm checklist
 
 - [ ] Fresh `npx dev-harness init` (no flag) in a new repo produces exactly today's v1 Cursor setup.
@@ -163,6 +195,10 @@ baseline `pinned skill/status/check` and `pinned check --platform claude-code`.
 
 - 2026-11-13T04:50:03.000Z · Reviewer (opus, high) · WS RESEARCH review revision 1 PASS-with-notes (reviewed @ f6ccbb7).
 
+- 2026-11-13T05:23:21.000Z · Reviewer (opus, high) · Code review revision 1 CHANGES-REQUESTED (worktree 4a915fc + unstaged).
+
+- 2026-11-13T06:15:27.000Z · Reviewer (opus, high) · Code re-review revision 1 PASS-with-notes (final; note: Case-insensitive filesystems: an adapter planning a differently-cased shipped path (e.g. .harness/Templates/arc.md) passes both the collision check (install.mjs:87-88) and the shipped-file guard (cli.mjs:101), which compare exact strings. Requires adapter code; collision layer has the same gap at baseline e7aabbc.)
+
 ## Progress ledger
 
 - 2026-11-13T04:44:15.218Z · Soner Can · Created.
@@ -170,3 +206,8 @@ baseline `pinned skill/status/check` and `pinned check --platform claude-code`.
 - 2026-11-13T04:46:31.000Z · User · Implementation approved for revision 1 ("continue"). WS RESEARCH review next.
 - 2026-11-13T04:50:03.000Z · Reviewer (opus, high) · RESEARCH review r1 PASS-with-notes; notes added to Handoff.
 - 2026-11-13T04:50:03.000Z · Orchestrator · RESEARCH exited (user approval + review PASS); IMPLEMENT entered; WS branch/worktree created.
+- 2026-11-13T05:09:08.000Z · Owner (opus, low) · Implementation reported ready-for-review from 4a915fc (owner-reported 56/56 twice). Gate → REVIEW.
+- 2026-11-13T05:23:21.000Z · Reviewer (opus, high) · CHANGES-REQUESTED: (1 blocking) cli.test.mjs:177-178 asserts sourceClone has no CLAUDE.md/.claude, which fails once the self-install is committed (55/56 reproduced); (2) baseline comparisons skip silently in shallow clones (:1350,:1361,:1381); (3) guarded-set test is literal/regex, not behavioural; (4 minor) raw ENOENT at cli.mjs:187 on legacy source layout, dead `fixed` list at :196. Gate → IMPLEMENT.
+- 2026-11-13T05:41:33.000Z · Owner (opus, low) · Review findings 1-4 addressed (owner-reported 58/58 twice). Gate → REVIEW.
+- 2026-11-13T06:15:27.000Z · Owner (opus, low) · Guard test fixed to assert the protecting layer per category; 58/58.
+- 2026-11-13T06:15:27.000Z · Reviewer (opus, high) · Final code review PASS-with-notes. Gate → USER CONFIRM.
