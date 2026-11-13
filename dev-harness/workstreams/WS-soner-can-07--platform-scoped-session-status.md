@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-11-13T09:36:20.436Z",
-  "updated": "2026-11-13T09:40:17.000Z",
-  "next": "WS RESEARCH re-review of revision 1 (A–C added); then branch from the arc tip.",
+  "updated": "2026-11-13T09:40:56.000Z",
+  "next": "Owner implements revision 1 in the WS worktree; then independent code review.",
   "arc": "2026-11-12-soner-can--self-hosted-shipped-defaults",
   "sequence": 7,
-  "gate": "RESEARCH",
+  "gate": "IMPLEMENT",
   "dependencies": [
     "WS-soner-can-06--shipped-default-config-separation"
   ],
@@ -42,6 +42,21 @@
     "date": "2026-11-13",
     "scope": "WS-07 IMPLEMENT after plan review and WS RESEARCH review PASS; branch after WS-06 merges",
     "evidence": "update it then!? (reply to WS-07 decisions 1-4 request)"
+  },
+  "researchState": "approved",
+  "implementationState": "in-progress",
+  "researchReview": {
+    "revision": 1,
+    "outcome": "PASS-with-notes",
+    "reviewer": "opus[effort=high]",
+    "date": "2026-11-13T09:40:56.000Z",
+    "notes": "Owner notes: add explicit tests for decisions 5-7 — exit 0 for status and check with multiple markers; check output shows not-installed and multiple-markers notices, no decision-3 hint, unchanged 'Valid: N records' line; Claude Code + Cursor markers with only claude-code installed yields the decision-2 result. Revision stays 1: decisions 5-7 were accepted directly by the user and do not change approved scope.",
+    "history": [
+      {
+        "outcome": "CHANGES-REQUESTED",
+        "date": "2026-11-13"
+      }
+    ]
   }
 }
 ---
@@ -54,8 +69,9 @@
 
 ## Checkout
 
-Fill after WS-06 merges into the arc: WS branch `ws/WS-soner-can-07--platform-scoped-session-status` from the arc tip;
-worktree `../dev-harness-worktrees/WS-soner-can-07--platform-scoped-session-status/`.
+WS branch: `ws/WS-soner-can-07--platform-scoped-session-status` from
+`arc/2026-11-12-soner-can--self-hosted-shipped-defaults` @ ARCTIP (after WS-06 merge d332a9f).
+Worktree: `../dev-harness-worktrees/WS-soner-can-07--platform-scoped-session-status/`.
 
 ## Scope and approach
 
@@ -90,6 +106,8 @@ Do not touch: root `AGENTS.md` (refreshed by the post-integration self-install),
 
 ## Handoff
 
+Owner notes: add explicit tests for decisions 5-7 — exit 0 for status and check with multiple markers; check output shows not-installed and multiple-markers notices, no decision-3 hint, unchanged 'Valid: N records' line; Claude Code + Cursor markers with only claude-code installed yields the decision-2 result. Revision stays 1: decisions 5-7 were accepted directly by the user and do not change approved scope.
+
 Owner: `dev-harness-owner` (Claude Code session override, opus low) in the external worktree, after WS-06 merges and WS RESEARCH
 review PASS. No staging, commits, or record edits.
 
@@ -118,11 +136,12 @@ Open: none.
 
 ## Gate
 
-Current: `RESEARCH`. Next action: WS RESEARCH review of revision 1.
+Current: `IMPLEMENT`. Next action: owner implements revision 1; then independent code review.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
-| RESEARCH | 2026-11-13 | — | — |
+| RESEARCH | 2026-11-13 | 2026-11-13 | PASS-with-notes |
+| IMPLEMENT | 2026-11-13 | — | — |
 
 ## Verification
 
@@ -154,8 +173,11 @@ cursor-agent, and codex (confirm CODEX_THREAD_ID survives `shell_environment_pol
 - 2026-11-13T09:40:17.000Z · Reviewer (opus, high) · WS RESEARCH review r1 CHANGES-REQUESTED (exit code for multiple markers; check notices; detection set).
 - 2026-11-13T09:40:17.000Z · User · Accepted A–C as recommended ("go").
 
+- 2026-11-13T09:40:56.000Z · Reviewer (opus, high) · WS RESEARCH review r1 PASS-with-notes.
+
 ## Progress ledger
 
 - 2026-11-13T09:36:20.436Z · Soner Can · Created.
 - 2026-11-13T09:36:20.000Z · Orchestrator · Revision 1 contract recorded from plan r2; WS RESEARCH review next; branches after WS-06 merges.
 - 2026-11-13T09:40:17.000Z · Orchestrator · Decisions 5–7 (A–C) added to the contract; WS RESEARCH re-review requested.
+- 2026-11-13T09:40:56.000Z · Orchestrator · RESEARCH exited (user direction + review PASS); IMPLEMENT entered; WS branch/worktree created from the arc tip.
