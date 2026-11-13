@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-11-13T11:49:59.918Z",
-  "updated": "2026-11-13T11:49:59.000Z",
+  "updated": "2026-11-13T11:50:34.000Z",
   "next": "Owner applies the README wording; then code review.",
   "arc": "2026-11-12-soner-can--self-hosted-shipped-defaults",
   "sequence": 9,
-  "gate": "RESEARCH",
+  "gate": "IMPLEMENT",
   "dependencies": [
     "WS-soner-can-08--readme-platform-quick-start"
   ],
@@ -29,6 +29,15 @@
     "date": "2026-11-13T11:49:59.000Z",
     "scope": "Docs-only README wording change",
     "evidence": "remove that scaffolding thing it's more than scaffold it worksing!"
+  },
+  "researchState": "approved",
+  "implementationState": "in-progress",
+  "researchReview": {
+    "revision": 1,
+    "outcome": "PASS-with-notes",
+    "reviewer": "opus[effort=high]",
+    "date": "2026-11-13T11:50:34.000Z",
+    "notes": "Say 'Gate approvals and reviews are agent-managed' so reviews are not read as CLI-enforced."
   }
 }
 ---
@@ -56,8 +65,8 @@ with:
 
 ```
 Works today with Cursor, Codex CLI, and Claude Code: setup, arcs, workstreams, gates,
-independent reviews, status, and validation. Gate approvals are agent-managed;
-automatic enforcement and non-CLI Codex surfaces are planned.
+independent reviews, status, and validation. Gate approvals and reviews are
+agent-managed; automatic enforcement and non-CLI Codex surfaces are planned.
 ```
 
 The known limitations stay (honest for test users). No other file or README text changes.
@@ -73,11 +82,12 @@ enforcement and non-CLI Codex surfaces planned) — existing documented facts, n
 
 ## Gate
 
-Current: `RESEARCH`. Next action: WS RESEARCH review.
+Current: `IMPLEMENT`. Next action: owner applies the README wording; then code review.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
-| RESEARCH | 2026-11-13 | — | — |
+| RESEARCH | 2026-11-13 | 2026-11-13 | PASS-with-notes |
+| IMPLEMENT | 2026-11-13 | — | — |
 
 ## Verification
 
@@ -95,3 +105,4 @@ README diff limited to that paragraph; no other file changed; `git diff --check`
 
 - 2026-11-13T11:49:59.918Z · Soner Can · Created.
 - 2026-11-13T11:49:59.000Z · Orchestrator · Revision 1 contract recorded.
+- 2026-11-13T11:50:34.000Z · Reviewer (opus, high) · WS RESEARCH review PASS-with-notes; wording note folded in. IMPLEMENT entered.
