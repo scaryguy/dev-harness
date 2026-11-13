@@ -9,8 +9,8 @@
   },
   "revision": 1,
   "created": "2026-11-13T04:44:15.218Z",
-  "updated": "2026-11-13T09:40:17.000Z",
-  "next": "Merged into the arc; arc smoke test (npm test) result pending.",
+  "updated": "2026-11-13T09:55:46.000Z",
+  "next": "None; merged into the arc and smoke-tested.",
   "arc": "2026-11-12-soner-can--self-hosted-shipped-defaults",
   "sequence": 6,
   "gate": "MERGED",
@@ -229,3 +229,4 @@ User test handoff: worktree `/Users/scaryguy/Projects/dev-harness-worktrees/WS-s
 - 2026-11-13T06:15:27.000Z · Owner (opus, low) · Guard test fixed to assert the protecting layer per category; 58/58.
 - 2026-11-13T06:15:27.000Z · Reviewer (opus, high) · Final code review PASS-with-notes. Gate → USER CONFIRM.
 - 2026-11-13T09:40:17.000Z · Orchestrator · WS commit 86752d5 on ws branch; merged into arc as d332a9f (--no-ff). Frozen paths and AGENTS.md identical to e7aabbc; baseline pinned skill/status/check pass; npm pack 18 files with defaults/config.json, without config.json. Full npm test on the arc running.
+- 2026-11-13T09:55:46.000Z · Orchestrator · Arc smoke test at d332a9f: npm test 58/58 pass, 0 skipped.

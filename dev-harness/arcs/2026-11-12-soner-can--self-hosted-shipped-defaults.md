@@ -9,7 +9,7 @@
   },
   "revision": 2,
   "created": "2026-11-13T04:43:49.390Z",
-  "updated": "2026-11-13T09:40:56.000Z",
+  "updated": "2026-11-13T09:55:46.000Z",
   "next": "WS-07 IMPLEMENT; arc smoke test after WS-06 merge running.",
   "status": "in-progress",
   "branch": "arc/2026-11-12-soner-can--self-hosted-shipped-defaults",
@@ -132,3 +132,4 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 - 2026-11-13T09:36:20.000Z · Orchestrator · WS-07 created via baseline pinned dispatcher; post-integration checklist adds root AGENTS.md refresh.
 - 2026-11-13T09:40:17.000Z · Orchestrator · WS-06 merged into arc as d332a9f; frozen paths + AGENTS.md identical to e7aabbc; baseline pinned skill/status/check pass; npm pack OK; full npm test running.
 - 2026-11-13T09:40:56.000Z · Orchestrator · WS-07 RESEARCH review PASS-with-notes; WS-07 entered IMPLEMENT.
+- 2026-11-13T09:55:46.000Z · Orchestrator · Arc smoke after WS-06 merge: full npm test on a clean clone at d332a9f — 58/58 pass, 0 fail, 0 skipped.

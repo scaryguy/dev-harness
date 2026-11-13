@@ -70,7 +70,7 @@
 ## Checkout
 
 WS branch: `ws/WS-soner-can-07--platform-scoped-session-status` from
-`arc/2026-11-12-soner-can--self-hosted-shipped-defaults` @ ARCTIP (after WS-06 merge d332a9f).
+`arc/2026-11-12-soner-can--self-hosted-shipped-defaults` @ `beb3a3b` (after WS-06 merge d332a9f).
 Worktree: `../dev-harness-worktrees/WS-soner-can-07--platform-scoped-session-status/`.
 
 ## Scope and approach
