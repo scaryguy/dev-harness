@@ -9,8 +9,8 @@
   },
   "revision": 4,
   "created": "2026-11-13T04:43:49.390Z",
-  "updated": "2026-11-13T11:51:26.000Z",
-  "next": "Final arc smoke, then integrate into main and push (user-approved).",
+  "updated": "2026-11-13T12:08:27.000Z",
+  "next": "Integrate into main and push (user-approved).",
   "status": "in-progress",
   "branch": "arc/2026-11-12-soner-can--self-hosted-shipped-defaults",
   "integrationBranch": "main",
@@ -111,7 +111,7 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 ## Integration checklist
 
 - [x] Workstreams completed or explicitly deferred.
-- [ ] Arc smoke tests after each WS merge and final integration checks passed (npm test; baseline `pinned skill`,
+- [x] Arc smoke tests after each WS merge and final integration checks passed (npm test; baseline `pinned skill`,
   `pinned status`, `pinned check`; frozen paths identical to baseSha; `npm pack` contents).
 - [x] User approved integration of the reviewed revision ("once passed, merge all and push main", 2026-11-13T11:44:20.000Z).
 - [ ] Post-integration, separately approved: on clean `main`, `node dev-harness/.harness/cli.mjs init --platform claude-code`;
@@ -152,3 +152,4 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 - 2026-11-13T11:49:59.000Z · User · ARC scope change: WS-09 README status wording (ARC revision 4).
 - 2026-11-13T11:50:34.000Z · Orchestrator · WS-09 RESEARCH review PASS-with-notes; IMPLEMENT.
 - 2026-11-13T11:51:26.000Z · Orchestrator · WS-09 code review PASS; merged into arc as f297137. All ARC workstreams merged.
+- 2026-11-13T12:08:27.000Z · Orchestrator · Arc smoke at 523a286 (after WS-07) env -i: 65/65. Final arc smoke at 7eb7e7a (WS-09 is README-only): npm test 65/65 inside Claude Code and 65/65 via env -i, 0 skipped; npm pack 18 files with defaults/config.json, without config.json; frozen paths + AGENTS.md identical to e7aabbc; baseline pinned skill/status/check pass.
