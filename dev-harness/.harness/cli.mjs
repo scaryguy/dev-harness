@@ -13,8 +13,8 @@ const home = join(root, 'dev-harness');
 const internal = join(home, '.harness');
 const markerStart = '<!-- dev-harness:start -->';
 const markerEnd = '<!-- dev-harness:end -->';
-const entry = `${markerStart}\nAt the start of a session, read \`dev-harness/.harness/skills/dev-harness/SKILL.md\`.\nRun \`node dev-harness/.harness/cli.mjs status\` and present its data using the skill's Session summary template, not raw output.\nFollow the skill before planning or changing this project. Never add a co-author line to any commit.\n${markerEnd}`;
-const sourceEntry = `${markerStart}\nFor every source-repository ARC, validate its full baseSha as an ancestor commit and its regular committed CLI/skill blobs. Read the baseline skill with \`git show BASE_SHA:dev-harness/.harness/skills/dev-harness/SKILL.md\` before following live instructions. Independently extract the CLI from that same SHA into an OS temporary directory verified outside the repo; verify its bytes against Git. Only invoke that absolute baseline CLI path from the ARC checkout, including \`node ABSOLUTE_BASELINE_CLI pinned skill\` and \`node ABSOLUTE_BASELINE_CLI pinned <command>\` when the baseline supports pinning. Never invoke the live candidate CLI's pinned dispatcher for governance. If the baseline predates pinned support, manually verify companion files and run the extracted baseline CLI as described in the source skill, after reading the baseline skill. Fail closed; no live fallback or pinned init. Outside a source ARC, read \`dev-harness/.harness/skills/dev-harness/SKILL.md\` and run \`node dev-harness/.harness/cli.mjs status\`. Present status using the skill's Session summary template. Never add a co-author line to any commit.\n${markerEnd}`;
+const entry = `${markerStart}\nAt the start of a session, read \`dev-harness/.harness/skills/dev-harness/SKILL.md\`.\nRun \`node dev-harness/.harness/cli.mjs status\` and present its data using the skill's Session summary template, not raw output.\nStatus shows only your detected platform; if it reports several platforms or an undetected or uninstalled platform, rerun with \`--platform ID\` for your own platform or ask the user. Present only your platform.\nFollow the skill before planning or changing this project. Never add a co-author line to any commit.\n${markerEnd}`;
+const sourceEntry = `${markerStart}\nFor every source-repository ARC, validate its full baseSha as an ancestor commit and its regular committed CLI/skill blobs. Read the baseline skill with \`git show BASE_SHA:dev-harness/.harness/skills/dev-harness/SKILL.md\` before following live instructions. Independently extract the CLI from that same SHA into an OS temporary directory verified outside the repo; verify its bytes against Git. Only invoke that absolute baseline CLI path from the ARC checkout, including \`node ABSOLUTE_BASELINE_CLI pinned skill\` and \`node ABSOLUTE_BASELINE_CLI pinned <command>\` when the baseline supports pinning. Never invoke the live candidate CLI's pinned dispatcher for governance. If the baseline predates pinned support, manually verify companion files and run the extracted baseline CLI as described in the source skill, after reading the baseline skill. Fail closed; no live fallback or pinned init. Outside a source ARC, read \`dev-harness/.harness/skills/dev-harness/SKILL.md\` and run \`node dev-harness/.harness/cli.mjs status\`, which shows only your detected platform; if it reports several platforms or an undetected or uninstalled platform, rerun with \`--platform ID\` for your own platform or ask the user, and present only your platform. Present status using the skill's Session summary template. Never add a co-author line to any commit.\n${markerEnd}`;
 const pinnedRuntimeVersion = 1;
 const gates = ['RESEARCH', 'IMPLEMENT', 'REVIEW', 'USER CONFIRM', 'MERGED', 'DEFERRED', 'CANCELLED', 'SPLIT'];
 const roles = ['planner', 'reviewer', 'owner'];
@@ -57,9 +57,16 @@ function selectors(args, multiple = false, targetAllowed = false) {
   }
   return { ids: [...new Set(ids)], target };
 }
-function selected(settings, ids) {
-  for (const id of ids) if (!settings.installedPlatforms.includes(id)) throw Error(`Platform is not installed: ${id}`);
-  return ids.length ? ids : settings.installedPlatforms;
+const hintNotice = 'Platform not detected; showing all installed. Agents: rerun with --platform ID';
+function scope(settings, ids, env = process.env) {
+  const installed = settings.installedPlatforms;
+  for (const id of ids) if (!installed.includes(id)) throw Error(`Platform is not installed: ${id}`);
+  if (ids.length) return { ids, notice: '' };
+  const found = integrations.detected(env);
+  if (found.length > 1) return { ids: [], notice: `Multiple agent runtimes detected (${found.map(id => integrations.lookup(id).label).join(', ')}); rerun with --platform ID` };
+  if (found.length === 1 && installed.includes(found[0])) return { ids: found, notice: '' };
+  if (found.length === 1) return { ids: [], notice: `${integrations.lookup(found[0]).label} is not installed here (installed: ${installed.join(', ') || 'none'}); run init --platform ${found[0]}` };
+  return { ids: installed, notice: installed.length > 1 ? hintNotice : '' };
 }
 
 function exists(path) {
@@ -84,6 +91,35 @@ function isPackageSourceCheckout(target) {
   return required.every(path => tracked.has(path));
 }
 
+// Paths the npm package ships, from the same list as package.json `files`.
+// A source checkout's init must never change their bytes.
+function shippedPaths(target) {
+  const lists = [];
+  for (const read of [() => git(['show', 'HEAD:package.json'], target), () => readFileSync(join(target, 'package.json'), 'utf8')]) {
+    let manifest;
+    try { manifest = JSON.parse(read()); } catch { continue; }
+    if (!Array.isArray(manifest.files) || manifest.files.some(path => typeof path !== 'string' || !path)) throw Error('Invalid package.json files list.');
+    lists.push(...manifest.files);
+  }
+  if (!lists.length) throw Error('Package source checkout lacks a readable package.json files list.');
+  return [...new Set(lists)];
+}
+function isShipped(path, shipped) {
+  return shipped.some(entry => entry.endsWith('/') ? path.startsWith(entry) || `${path}/` === entry : path === entry || path.startsWith(`${entry}/`));
+}
+
+function packagedDefaults() {
+  const path = join(source, 'defaults', 'config.json');
+  const hint = ' Refresh with `npx @scaryguy/dev-harness init` to restore the packaged defaults.';
+  const folder = exists(join(source, 'defaults'));
+  const item = exists(path);
+  if (!folder || folder.isSymbolicLink() || !folder.isDirectory() || !item || item.isSymbolicLink() || !item.isFile()) throw Error(`Missing or unsafe packaged defaults: ${path}.${hint}`);
+  let value;
+  try { value = JSON.parse(readFileSync(path, 'utf8')); integrations.normalize(value); }
+  catch { throw Error(`Invalid packaged defaults: ${path}.${hint}`); }
+  return value;
+}
+
 function init(target, requested = []) {
   const folder = join(target, 'dev-harness');
   const runtime = join(folder, '.harness');
@@ -102,7 +138,8 @@ function init(target, requested = []) {
   }
   const current = existsSync(join(runtime, 'config.json')) ? runtime : existsSync(join(folder, 'config.json')) ? folder : null;
   if (exists(folder) && !current) throw new Error('Existing dev-harness/ is not managed by this scaffold.');
-  const plannedConfig = integrations.planConfig(current ? rawConfig(current) : null, rawConfig(source), requested);
+  const defaults = packagedDefaults();
+  const plannedConfig = integrations.planConfig(current ? rawConfig(current) : null, defaults, requested);
   const settings = integrations.normalize(plannedConfig);
   const plan = artifactPlan(target, settings);
   integrations.safeParents(target, 'dev-harness/.harness', true);
@@ -123,9 +160,10 @@ function init(target, requested = []) {
     if (actual && (actual.isSymbolicLink() || expected.isDirectory() !== actual.isDirectory() || expected.isFile() !== actual.isFile())) throw Error(`Invalid managed path: ${destination}`);
     if (expected.isDirectory()) for (const name of readdirSync(sourcePath)) preflightCopy(join(sourcePath, name), join(destination, name));
   }
-  for (const item of ['config.json', 'cli.mjs', 'templates', 'skills', 'adapters', 'integrations', '.gitignore']) {
+  for (const item of ['defaults', 'cli.mjs', 'templates', 'skills', 'adapters', 'integrations', '.gitignore']) {
     const sourcePath = join(source, item === '.gitignore' ? 'templates/gitignore' : item);
-    for (const destination of new Set([join(current || runtime, item), join(runtime, item)])) {
+    // Legacy layouts never shipped defaults/, so only the runtime destination is managed.
+    for (const destination of new Set([join(item === 'defaults' ? runtime : current || runtime, item), join(runtime, item)])) {
       preflightTree(destination);
       preflightCopy(sourcePath, destination);
     }
@@ -149,11 +187,26 @@ function init(target, requested = []) {
     if (typeof adapter.assertReady === 'function') adapter.assertReady();
   }
   integrations.preflightNatives(target, plan);
+  if (isPackageSourceCheckout(target)) {
+    if (current !== runtime) throw Error('Source checkout self-install requires an existing dev-harness/.harness/config.json; refusing before any write.');
+    const shipped = shippedPaths(target);
+    const writes = [...plan.files, ...plan.nativeFiles];
+    const configBody = `${JSON.stringify(plannedConfig, null, 2)}\n`;
+    if (JSON.stringify(rawConfig(runtime)) !== JSON.stringify(plannedConfig)) writes.push({ path: 'dev-harness/.harness/config.json', content: configBody });
+    for (const file of writes) {
+      if (!isShipped(file.path, shipped)) continue;
+      const item = exists(join(target, file.path));
+      if (!item?.isFile() || !readFileSync(join(target, file.path)).equals(Buffer.from(file.content))) {
+        throw Error(`Refusing to change shipped package file in a source checkout: ${file.path}. Edit the shipped source deliberately instead.`);
+      }
+    }
+  }
   if (!current) {
     mkdirSync(runtime, { recursive: true });
-    for (const item of ['config.json', 'cli.mjs', 'templates', 'skills', 'adapters', 'integrations']) {
+    for (const item of ['defaults', 'cli.mjs', 'templates', 'skills', 'adapters', 'integrations']) {
       cpSync(join(source, item), join(runtime, item), { recursive: true, errorOnExist: true, force: false });
     }
+    cpSync(join(source, 'defaults', 'config.json'), join(runtime, 'config.json'), { errorOnExist: true, force: false });
     cpSync(join(source, 'templates', 'gitignore'), join(runtime, '.gitignore'));
     mkdirSync(join(runtime, 'knowledge'));
     cpSync(join(source, 'templates', 'context.md'), join(runtime, 'knowledge', 'context.md'));
@@ -162,7 +215,7 @@ function init(target, requested = []) {
     for (const item of oldItems) renameSync(join(folder, item), join(runtime, item));
 
   }
-  for (const item of ['cli.mjs', 'templates', 'skills', 'adapters', 'integrations']) {
+  for (const item of ['defaults', 'cli.mjs', 'templates', 'skills', 'adapters', 'integrations']) {
     if (resolve(join(source, item)) !== resolve(join(runtime, item))) {
       cpSync(join(source, item), join(runtime, item), { recursive: true });
     }
@@ -231,12 +284,13 @@ function status(ids = []) {
   const settings = config();
   const user = identity();
   const active = records().filter(record => !['complete', 'cancelled', 'MERGED', 'DEFERRED', 'CANCELLED', 'SPLIT'].includes(record.status || record.gate));
-  const platforms = selected(settings, ids);
+  const { ids: platforms, notice } = scope(settings, ids);
   console.log(`Dev Harness · ${user.name} · ${git(['branch', '--show-current']) || 'detached/unborn'}`);
   for (const id of platforms) {
     const model = settings.adapters[id].models.orchestrator;
     console.log(`${platforms.length === 1 ? '' : `${integrations.lookup(id).label} · `}Orchestrator: ${model.model}${model.effort ? ` · ${model.effort}` : ''} (configured)`);
   }
+  if (notice) console.log(notice);
   if (!active.length) console.log('No active arcs or workstreams. Describe what you want to build.');
   for (const record of active.sort((a, b) => Number(b.owner.id === user.id) - Number(a.owner.id === user.id))) {
     console.log(`${record.owner.id === user.id ? 'Yours' : record.owner.name} · ${record.id} · ${record.title} · ${record.gate || record.status}\nNext: ${record.next}`);
@@ -544,10 +598,11 @@ try {
     else if (command === 'status') status(selectors(args).ids);
     else if (command === 'check') {
       const settings = config();
-      const ids = selected(settings, selectors(args).ids);
+      const { ids, notice } = scope(settings, selectors(args).ids);
       const shared = records();
       integrations.checkLinks(root, artifactPlan(root, { ...settings, installedPlatforms: ids }));
       for (const id of ids) integrations.lookup(id).checkArtifacts({ targetRoot: root, sourceRoot: source, settings: settings.adapters[id], id });
+      if (notice && notice !== hintNotice) console.log(notice);
       console.log(`Valid: ${shared.length} records. Structural validation only.`);
     }
     else if (command === 'new') create(args[0], args[0] === 'workstream' ? args[1] : undefined, args.slice(args[0] === 'workstream' ? 2 : 1).join(' '));

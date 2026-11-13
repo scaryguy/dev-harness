@@ -25,6 +25,7 @@ export default {
   id: 'codex', label: 'Codex',
   defaults: Object.fromEntries(['orchestrator', ...roles].map(role => [role, { model: 'gpt-6.1-sol', effort: role === 'owner' ? 'low' : 'high' }])),
   capabilities: { instructionDiscovery: true, delegation: true, roleSettings: true, externalWorktrees: true, backgroundExecution: true },
+  detect(env) { return typeof env.CODEX_THREAD_ID === 'string' && !(env.CODEX_THREAD_ID === ''); },
   validateSettings(settings) {
     if (!settings || !['orchestrator', ...roles].every(role => valid(settings.models?.[role]?.model) && valid(settings.models[role].effort))) throw Error('Invalid Codex model settings.');
   },

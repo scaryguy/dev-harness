@@ -8,6 +8,13 @@ import { delimiter, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { safePath } from './integrations/install.mjs';
 
+// Agent runtime markers scope plain status/check; tests must not inherit the runner's agent session.
+const markerNames = ['CLAUDE_CODE_CHILD_SESSION', 'CLAUDECODE', 'CURSOR_AGENT', 'CURSOR_TRACE_ID', 'CODEX_THREAD_ID', 'CODEX_SANDBOX', 'AI_AGENT'];
+for (const name of Object.keys(process.env)) {
+  if (markerNames.includes(name) || ['CLAUDE_CODE_', 'CURSOR_', 'CODEX_'].some(prefix => name.startsWith(prefix))) delete process.env[name];
+}
+const hint = 'Platform not detected; showing all installed. Agents: rerun with --platform ID';
+
 const cli = join(dirname(fileURLToPath(import.meta.url)), 'cli.mjs');
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'dev-harness-test-'));
@@ -138,6 +145,9 @@ test('npm package installs through npx without a checkout or project dependency'
   assert.ok(files.includes('dev-harness/.harness/templates/gitignore'));
   assert.ok(files.every(file => !/^(?:\.git\/|\.cursor\/|AGENTS\.md$|dev-harness\/(?:arcs|workstreams)\/|dev-harness\/\.harness\/(?:knowledge|local|cache)\/)/.test(file)));
   assert.ok(!files.includes('dev-harness/.harness/cli.test.mjs'));
+  assert.ok(!files.includes('dev-harness/.harness/config.json'));
+  assert.ok(files.includes('dev-harness/.harness/defaults/config.json'));
+  assert.ok(files.every(file => file !== 'CLAUDE.md' && !file.startsWith('.claude/')));
   const root = fixture();
   const tarball = join(output, manifest.filename);
   const sourceClone = join(output, 'source-clone');
@@ -165,8 +175,18 @@ test('npm package installs through npx without a checkout or project dependency'
   const localCli = join(sourceClone, 'dev-harness', '.harness', 'cli.mjs');
   cpSync(cli, localCli);
   cpSync(join(dirname(cli), 'integrations'), join(dirname(localCli), 'integrations'), { recursive: true });
+  cpSync(join(dirname(cli), 'defaults'), join(dirname(localCli), 'defaults'), { recursive: true });
+  // Pin the clone to the shipped default so a self-installed repo config cannot require native CLIs.
+  cpSync(join(dirname(cli), 'defaults', 'config.json'), join(dirname(localCli), 'config.json'));
+  // Native Claude files may be committed by the repo's own self-install; init must leave them as cloned.
+  const nativeState = () => [existsSync(join(sourceClone, 'CLAUDE.md')) ? readFileSync(join(sourceClone, 'CLAUDE.md'), 'utf8') : null,
+    existsSync(join(sourceClone, '.claude')) ? snapshotTree(join(sourceClone, '.claude')) : null];
+  const nativeBefore = nativeState();
+  const hermetic = claudeEnvironment();
   ok(spawnSync(process.execPath, [localCli, 'init'],
-    { cwd: sourceClone, encoding: 'utf8' }));
+    { cwd: sourceClone, encoding: 'utf8', env: hermetic.env }));
+  assert.deepEqual(nativeState(), nativeBefore);
+  assert.deepEqual(invocations(hermetic.logs.claude), []);
 
   ok(spawnSync('npx', ['--yes', '--offline', `--package=${tarball}`, 'dev-harness', 'init'], { cwd: root, env, encoding: 'utf8' }));
   assert.ok(existsSync(join(root, 'dev-harness', '.harness', 'knowledge', 'context.md')));
@@ -203,6 +223,8 @@ function legacyFixture() {
   const ws = ok(run(root, 'new', 'workstream', arc, 'Existing workstream'));
   const folder = join(root, 'dev-harness');
   const internal = join(folder, '.harness');
+  // Legacy layouts predate the packaged defaults folder.
+  rmSync(join(internal, 'defaults'), { recursive: true });
   for (const item of readdirSync(internal)) renameSync(join(internal, item), join(folder, item));
   rmdirSync(internal);
   for (const path of [join(root, '.cursor', 'skills', 'dev-harness'), ...['planner', 'reviewer', 'owner'].map(role => join(root, '.cursor', 'agents', `dev-harness-${role}.md`))]) {
@@ -961,6 +983,7 @@ test('codex init installs only Codex, stays idempotent, and preserves Cursor whe
     'Cursor · Orchestrator: grok-4.7[effort=xhigh] (configured)',
     'Codex · Orchestrator: gpt-6.1-sol · high (configured)'
   ]);
+  assert.equal(status.split('\n').filter(line => line === hint).length, 1);
   const arc = ok(runWith(cursorRoot, env, 'new', 'arc', 'Shared record'));
   const shared = ok(runWith(cursorRoot, env, 'status'));
   assert.equal(shared.split('\n').filter(line => line.includes(` · ${arc} · `)).length, 1);
@@ -1219,6 +1242,7 @@ test('claude-code adds onto Cursor and Codex and narrows status and check', () =
     'Codex · Orchestrator: gpt-6.1-sol · high (configured)',
     'Claude Code · Orchestrator: opus · high (configured)'
   ]);
+  assert.equal(status.split('\n').filter(line => line === hint).length, 1);
   const arc = ok(runWith(root, env, 'new', 'arc', 'Shared record'));
   const shared = ok(runWith(root, env, 'status'));
   assert.equal(shared.split('\n').filter(line => line.includes(` · ${arc} · `)).length, 1);
@@ -1325,4 +1349,352 @@ test('a false Claude Code capability refuses install before writes', () => {
   assert.deepEqual(invocations(logs.claude), []);
   assert.deepEqual(snapshotTree(root), before);
   assert.deepEqual(snapshotTree(home), homeBefore);
+});
+
+const packageRoot = dirname(dirname(dirname(cli)));
+const defaultsPath = join(dirname(cli), 'defaults', 'config.json');
+const baselineSha = 'e7aabbcbbf7993dc4c5b9b98c9ce0396831da675';
+function packageCopy() {
+  const copy = mkdtempSync(join(tmpdir(), 'dev-harness-package-copy-'));
+  cpSync(dirname(cli), copy, { recursive: true });
+  return { runtime: copy, execute: (root, env, ...args) => spawnSync(process.execPath, [join(copy, 'cli.mjs'), ...args], { cwd: root, encoding: 'utf8', env }) };
+}
+function baselineRuntime() {
+  if (spawnSync('git', ['cat-file', '-e', `${baselineSha}^{commit}`], { cwd: packageRoot }).status !== 0) return null;
+  const folder = mkdtempSync(join(tmpdir(), 'dev-harness-baseline-'));
+  const archive = execFileSync('git', ['archive', '--format=tar', baselineSha, 'dev-harness/.harness'], { cwd: packageRoot });
+  execFileSync('tar', ['-x', '-C', folder], { input: archive });
+  rmSync(join(folder, 'dev-harness/.harness/cli.test.mjs'), { force: true });
+  return join(folder, 'dev-harness/.harness/cli.mjs');
+}
+function installSnapshot(root) {
+  return snapshotTree(root).filter(([path]) => !/^\.git(?:\/|$)/.test(path)
+    && !/^dev-harness\/\.harness\/(?:cli\.mjs|defaults|integrations)(?:\/|$)/.test(path));
+}
+function treeSnapshot(folder) {
+  return snapshotTree(folder).filter(([path]) => path !== 'defaults' && !path.startsWith('defaults/'));
+}
+
+test('shipped defaults are a byte copy of the e7aabbc config and normalize', t => {
+  const value = JSON.parse(readFileSync(defaultsPath, 'utf8'));
+  assert.equal(value.version, 1); assert.equal(value.platform, 'cursor');
+  const baseline = spawnSync('git', ['show', `${baselineSha}:dev-harness/.harness/config.json`], { cwd: packageRoot });
+  if (baseline.status !== 0) { t.skip('baseline e7aabbc unavailable (shallow clone)'); return; }
+  assert.ok(readFileSync(defaultsPath).equals(baseline.stdout));
+});
+
+test('guarded shipped set equals package files and excludes the repo config', () => {
+  const manifest = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
+  assert.deepEqual(manifest.files, ['dev-harness/.harness/cli.mjs', 'dev-harness/.harness/defaults/', 'dev-harness/.harness/templates/',
+    'dev-harness/.harness/skills/', 'dev-harness/.harness/adapters/', 'dev-harness/.harness/integrations/']);
+  assert.match(readFileSync(cli, 'utf8'), /function shippedPaths\(target\) \{[\s\S]*?manifest\.files/);
+  assert.equal(existsSync(join(packageRoot, 'dev-harness/.harness/defaults/config.json')), true);
+});
+
+test('mutated repo config never leaks into fresh installs; platform installs match the baseline', t => {
+  const copy = packageCopy();
+  const configPath = join(copy.runtime, 'config.json');
+  const mutated = JSON.parse(readFileSync(defaultsPath, 'utf8'));
+  writeFileSync(configPath, JSON.stringify({ ...mutated, version: 2, installedPlatforms: ['cursor', 'claude-code'],
+    adapters: { cursor: { models: { orchestrator: { model: 'leak' }, planner: { model: 'leak' }, reviewer: { model: 'leak' }, owner: { model: 'leak' } } },
+      'claude-code': { models: { orchestrator: { model: 'leak', effort: 'high' }, planner: { model: 'leak', effort: 'high' }, reviewer: { model: 'leak', effort: 'high' }, owner: { model: 'leak', effort: 'low' } } } } }, null, 2));
+  const { env } = claudeEnvironment();
+  const fresh = fixture();
+  ok(copy.execute(fresh, env, 'init'));
+  assert.ok(readFileSync(join(fresh, 'dev-harness/.harness/config.json')).equals(readFileSync(defaultsPath)));
+  assert.ok(readFileSync(join(fresh, 'dev-harness/.harness/defaults/config.json')).equals(readFileSync(defaultsPath)));
+  assert.equal(existsSync(join(fresh, 'CLAUDE.md')), false);
+  const baseline = baselineRuntime();
+  for (const args of [[], ['--platform', 'codex'], ['--platform', 'claude-code']]) {
+    const candidate = fixture();
+    ok(copy.execute(candidate, env, 'init', ...args));
+    assert.doesNotMatch(readFileSync(join(candidate, 'dev-harness/.harness/config.json'), 'utf8'), /leak/);
+    if (!baseline) { t.skip('baseline e7aabbc unavailable (shallow clone)'); continue; }
+    const expected = fixture();
+    ok(spawnSync(process.execPath, [baseline, 'init', ...args], { cwd: expected, encoding: 'utf8', env }));
+    // WS-07 intentionally changes the managed AGENTS.md entry and the shipped skill; all other install bytes match e7aabbc.
+    const changed = ['AGENTS.md', 'dev-harness/.harness/skills/dev-harness/SKILL.md'];
+    const comparable = root => installSnapshot(root).map(item => changed.includes(item[0]) ? item.slice(0, 2) : item);
+    assert.deepEqual(comparable(candidate), comparable(expected), args.join(' '));
+    assert.ok(readFileSync(join(candidate, changed[1])).equals(readFileSync(join(dirname(cli), 'skills/dev-harness/SKILL.md'))), args.join(' '));
+    assert.equal(managedBlock(readFileSync(join(candidate, 'AGENTS.md'), 'utf8')), ['<!-- dev-harness:start -->', ...entryLines, '<!-- dev-harness:end -->'].join('\n'), args.join(' '));
+  }
+});
+
+test('source checkout init leaves shipped files unchanged and refuses shipped changes before writes', () => {
+  const source = sourceFixture();
+  const harness = join(source.root, 'dev-harness/.harness');
+  const before = snapshotTree(source.root);
+  ok(spawnSync(process.execPath, [source.localCli, 'init'], { cwd: source.root, encoding: 'utf8' }));
+  assert.deepEqual(snapshotTree(source.root), before);
+  const configPath = join(harness, 'config.json');
+  const settings = JSON.parse(readFileSync(configPath, 'utf8'));
+  settings.models.subagents = 'changed-model';
+  writeFileSync(configPath, JSON.stringify(settings));
+  const changed = snapshotTree(source.root);
+  const refused = spawnSync(process.execPath, [source.localCli, 'init'], { cwd: source.root, encoding: 'utf8' });
+  assert.notEqual(refused.status, 0);
+  assert.match(refused.stderr, /Refusing to change shipped package file in a source checkout: dev-harness\/\.harness\/adapters\/cursor\//);
+  assert.deepEqual(snapshotTree(source.root), changed);
+});
+
+test('normal-project rerun after a Cursor model change still rewrites runtime adapters', () => {
+  const root = fixture(); ok(run(root, 'init'));
+  const path = join(root, 'dev-harness/.harness/config.json');
+  const settings = JSON.parse(readFileSync(path, 'utf8'));
+  settings.models.subagents = 'rerun-model';
+  writeFileSync(path, JSON.stringify(settings));
+  ok(run(root, 'init'));
+  assert.match(readFileSync(join(root, 'dev-harness/.harness/adapters/cursor/agents/dev-harness-owner.md'), 'utf8'), /model: rerun-model/);
+  ok(run(root, 'check'));
+});
+
+test('missing, symlinked, or invalid packaged defaults fail closed before writes', () => {
+  const mutations = [
+    folder => rmSync(join(folder, 'defaults'), { recursive: true }),
+    folder => rmSync(join(folder, 'defaults/config.json')),
+    folder => { const other = join(mkdtempSync(join(tmpdir(), 'defaults-link-')), 'config.json'); cpSync(defaultsPath, other); rmSync(join(folder, 'defaults/config.json')); symlinkSync(other, join(folder, 'defaults/config.json')); },
+    folder => writeFileSync(join(folder, 'defaults/config.json'), '{ not json'),
+    folder => writeFileSync(join(folder, 'defaults/config.json'), JSON.stringify({ version: 1, platform: 'cursor' }))
+  ];
+  for (const mutate of mutations) {
+    for (const refresh of [false, true]) {
+      const copy = packageCopy();
+      const root = fixture();
+      if (refresh) ok(copy.execute(root, process.env, 'init'));
+      mutate(copy.runtime);
+      const before = snapshotTree(root);
+      const result = copy.execute(root, process.env, 'init');
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /packaged defaults[\s\S]*npx @scaryguy\/dev-harness init/);
+      assert.deepEqual(snapshotTree(root), before);
+    }
+  }
+});
+
+test('a runtime whose defaults were deleted is restored by a package refresh', () => {
+  const root = fixture(); ok(run(root, 'init'));
+  rmSync(join(root, 'dev-harness/.harness/defaults'), { recursive: true });
+  ok(run(root, 'init'));
+  assert.ok(readFileSync(join(root, 'dev-harness/.harness/defaults/config.json')).equals(readFileSync(defaultsPath)));
+});
+
+test('governance output ignores tampered or deleted defaults', () => {
+  const normalize = text => text.replace(/\d{4}-\d{1,2}-\d{1,2}-/g, 'DATE-').replace(/\d{4}-\d{2}-\d{2}T[\d:.]+Z/g, 'TIME')
+    .replace(/dev-harness-(?:pinned|test)-[A-Za-z0-9]+/g, 'TEMP');
+  function outputs(change) {
+    const source = sourceFixture();
+    change(join(source.root, 'dev-harness/.harness/defaults'));
+    const result = [];
+    for (const args of [['status'], ['check'], ['new', 'arc', 'Tamper probe'], ['status'], ['check']]) {
+      const output = run(source.root, ...args); result.push([output.status, normalize(output.stdout), normalize(output.stderr)]);
+    }
+    execFileSync('git', ['switch', '-q', `arc/${source.arc}`], { cwd: source.root });
+    for (const args of [['skill'], ['status'], ['check'], ['new', 'workstream', source.arc, 'Tamper slice']]) {
+      const output = pinnedRun(source, ...args); result.push([output.status, normalize(output.stdout), normalize(output.stderr)]);
+    }
+    return result;
+  }
+  const baseline = outputs(() => {});
+  assert.deepEqual(outputs(folder => writeFileSync(join(folder, 'config.json'), '{ tampered')), baseline);
+  assert.deepEqual(outputs(folder => rmSync(folder, { recursive: true })), baseline);
+});
+
+test('legacy dev-harness/defaults does not block migration', () => {
+  const { root, folder } = legacyFixture();
+  mkdirSync(join(folder, 'defaults'));
+  writeFileSync(join(folder, 'defaults', 'unrelated.txt'), 'keep');
+  ok(run(root, 'init'));
+  assert.equal(readFileSync(join(folder, 'defaults', 'unrelated.txt'), 'utf8'), 'keep');
+  assert.ok(readFileSync(join(folder, '.harness/defaults/config.json')).equals(readFileSync(defaultsPath)));
+  ok(run(root, 'check'));
+});
+
+test('existing-install refresh preserves config, knowledge, and records and installs defaults', () => {
+  const root = fixture(); ok(run(root, 'init', '--platform', 'cursor'));
+  const arc = ok(run(root, 'new', 'arc', 'Refresh probe'));
+  const internal = join(root, 'dev-harness/.harness');
+  writeFileSync(join(internal, 'knowledge/context.md'), 'Keep.\n');
+  rmSync(join(internal, 'defaults'), { recursive: true });
+  const preserved = [join(internal, 'config.json'), join(internal, 'knowledge/context.md'), join(root, 'dev-harness/arcs', `${arc}.md`)];
+  const before = preserved.map(path => readFileSync(path, 'utf8'));
+  ok(run(root, 'init'));
+  assert.deepEqual(preserved.map(path => readFileSync(path, 'utf8')), before);
+  assert.deepEqual(treeSnapshot(join(internal, 'defaults')), treeSnapshot(join(dirname(cli), 'defaults')));
+});
+
+test('source self-install refuses to change any shipped path category before writes, but may write its config', () => {
+  const manifest = JSON.parse(readFileSync(join(packageRoot, 'package.json'), 'utf8'));
+  const categories = ['cli.mjs', 'defaults/', 'templates/', 'skills/', 'adapters/', 'integrations/'].map(item => `dev-harness/.harness/${item}`);
+  assert.deepEqual([...manifest.files].sort(), [...categories].sort());
+  // New paths, so each case reaches the earliest layer that protects it. Only adapters/ is outside the
+  // planArtifacts collision list; every other category is protected by that collision check first.
+  const collision = /Integration artifact collision/;
+  const guard = /Refusing to change shipped package file in a source checkout: dev-harness\/\.harness\/adapters\/dummy\/agent\.md/;
+  const targets = { 'dev-harness/.harness/cli.mjs': ['dev-harness/.harness/cli.mjs', collision], 'dev-harness/.harness/defaults/': ['dev-harness/.harness/defaults/new.json', collision],
+    'dev-harness/.harness/templates/': ['dev-harness/.harness/templates/new.md', collision], 'dev-harness/.harness/skills/': ['dev-harness/.harness/skills/new.md', collision],
+    'dev-harness/.harness/adapters/': ['dev-harness/.harness/adapters/dummy/agent.md', guard], 'dev-harness/.harness/integrations/': ['dev-harness/.harness/integrations/new.mjs', collision] };
+  for (const entry of manifest.files) {
+    assert.ok(targets[entry], entry);
+    const [path, expected] = targets[entry];
+    const source = sourceFixture();
+    const integration = join(source.root, 'dev-harness/.harness/integrations');
+    const dummy = "export default { id:'dummy', label:'Dummy', defaults:{orchestrator:{model:'d'},planner:{model:'d'},reviewer:{model:'d'},owner:{model:'d'}}, capabilities:{instructionDiscovery:true,delegation:true,roleSettings:true,externalWorktrees:true,backgroundExecution:true}, validateSettings(){}, planArtifacts(){return {files:[{path:" + JSON.stringify(path) + ",content:'CHANGED',ownership:'builtin'}],links:[]}}, checkArtifacts(){}, startupGuidance(){return 'dummy'}};";
+    writeFileSync(join(integration, 'dummy.mjs'), dummy);
+    const registry = join(integration, 'registry.mjs');
+    writeFileSync(registry, readFileSync(registry, 'utf8').replace("import cursor from './cursor.mjs';", "import cursor from './cursor.mjs';\nimport dummy from './dummy.mjs';").replace('[cursor, codex, claudeCode]', '[cursor, dummy, codex, claudeCode]'));
+    const before = snapshotTree(source.root);
+    const result = spawnSync(process.execPath, [source.localCli, 'init', '--platform', 'dummy'], { cwd: source.root, encoding: 'utf8' });
+    assert.notEqual(result.status, 0, entry);
+    assert.match(result.stderr, expected, entry);
+    assert.deepEqual(snapshotTree(source.root), before, entry);
+  }
+  const source = sourceFixture();
+  const configPath = join(source.root, 'dev-harness/.harness/config.json');
+  const shippedState = () => snapshotTree(join(source.root, 'dev-harness/.harness')).filter(([path]) => categories.some(entry => `dev-harness/.harness/${path}` === entry || `dev-harness/.harness/${path}`.startsWith(entry)));
+  const shippedBefore = shippedState();
+  ok(spawnSync(process.execPath, [source.localCli, 'init', '--platform', 'cursor'], { cwd: source.root, encoding: 'utf8' }));
+  assert.equal(JSON.parse(readFileSync(configPath, 'utf8')).version, 2);
+  assert.ok(shippedBefore.length >= categories.length);
+  assert.deepEqual(shippedState(), shippedBefore);
+});
+
+test('legacy-layout source checkout refuses self-install with a clear error before writes', () => {
+  const source = sourceFixture();
+  const harness = join(source.root, 'dev-harness/.harness');
+  renameSync(join(harness, 'config.json'), join(source.root, 'dev-harness/config.json'));
+  const before = snapshotTree(source.root);
+  const result = spawnSync(process.execPath, [source.localCli, 'init'], { cwd: source.root, encoding: 'utf8' });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Source checkout self-install requires an existing dev-harness\/\.harness\/config\.json/);
+  assert.deepEqual(snapshotTree(source.root), before);
+});
+
+const entryLines = [
+  'At the start of a session, read `dev-harness/.harness/skills/dev-harness/SKILL.md`.',
+  "Run `node dev-harness/.harness/cli.mjs status` and present its data using the skill's Session summary template, not raw output.",
+  'Status shows only your detected platform; if it reports several platforms or an undetected or uninstalled platform, rerun with `--platform ID` for your own platform or ask the user. Present only your platform.',
+  'Follow the skill before planning or changing this project. Never add a co-author line to any commit.'
+];
+const outsideSentence = "Outside a source ARC, read `dev-harness/.harness/skills/dev-harness/SKILL.md` and run `node dev-harness/.harness/cli.mjs status`, which shows only your detected platform; if it reports several platforms or an undetected or uninstalled platform, rerun with `--platform ID` for your own platform or ask the user, and present only your platform.";
+function managedBlock(text) { return text.slice(text.indexOf('<!-- dev-harness:start -->'), text.indexOf('<!-- dev-harness:end -->') + '<!-- dev-harness:end -->'.length); }
+function withoutOutside(block) { return block.replace(/ Outside a source ARC, [^\n]*?(?= Present status using)/, ''); }
+
+test('ordinary AGENTS.md entry tells agents to present only their detected platform', () => {
+  const root = fixture();
+  ok(run(root, 'init'));
+  assert.equal(managedBlock(readFileSync(join(root, 'AGENTS.md'), 'utf8')), ['<!-- dev-harness:start -->', ...entryLines, '<!-- dev-harness:end -->'].join('\n'));
+});
+
+test('source entry changes only the outside-ARC sentence; bootstrap portion is byte-identical to e7aabbc', t => {
+  const source = sourceFixture();
+  const block = managedBlock(readFileSync(join(source.root, 'AGENTS.md'), 'utf8'));
+  assert.equal(block.split(outsideSentence).length, 2);
+  assert.match(block, /^<!-- dev-harness:start -->\nFor every source-repository ARC, validate its full baseSha/);
+  if (!baselineRuntime()) return t.skip('baseline commit unavailable');
+  const baselineCli = execFileSync('git', ['show', `${baselineSha}:dev-harness/.harness/cli.mjs`], { cwd: packageRoot, encoding: 'utf8' });
+  const literal = text => text.match(/^const sourceEntry = `\$\{markerStart\}\\n(.*)\\n\$\{markerEnd\}`;$/m)[1];
+  const before = literal(baselineCli);
+  const after = literal(readFileSync(cli, 'utf8'));
+  assert.notEqual(before, after);
+  assert.match(before, / Outside a source ARC, /);
+  assert.equal(withoutOutside(after), withoutOutside(before));
+  assert.notEqual(withoutOutside(after), after);
+  assert.equal(block, `<!-- dev-harness:start -->\n${after.replaceAll('\\`', '`')}\n<!-- dev-harness:end -->`);
+});
+
+function markerRepo(platforms) {
+  const { env } = claudeEnvironment();
+  const root = fixture();
+  ok(runWith(root, env, 'init', ...platforms.flatMap(id => ['--platform', id])));
+  return { root, env };
+}
+const orchestratorLines = output => output.split('\n').filter(line => line.includes('Orchestrator:'));
+const cursorLine = 'Orchestrator: grok-4.7[effort=high] (configured)';
+const claudeLine = 'Orchestrator: opus · high (configured)';
+const multiple = 'Multiple agent runtimes detected (Cursor, Claude Code); rerun with --platform ID';
+
+test('plain status and check scope to the detected runtime marker; --platform wins', () => {
+  const { root, env } = markerRepo(['cursor', 'claude-code']);
+  ok(runWith(root, env, 'new', 'arc', 'Marker record'));
+  const cases = [
+    ['claude code', { CLAUDE_CODE_CHILD_SESSION: '1' }, [claudeLine], null],
+    ['cursor', { CURSOR_AGENT: '1' }, [cursorLine], null],
+    ['claudecode is ignored', { CLAUDECODE: '1' }, ['Cursor · ' + cursorLine, 'Claude Code · ' + claudeLine], hint],
+    ['child session not 1', { CLAUDE_CODE_CHILD_SESSION: '0', CURSOR_AGENT: '' }, ['Cursor · ' + cursorLine, 'Claude Code · ' + claudeLine], hint],
+    ['none', {}, ['Cursor · ' + cursorLine, 'Claude Code · ' + claudeLine], hint],
+    ['multiple', { CLAUDE_CODE_CHILD_SESSION: '1', CURSOR_AGENT: '1' }, [], multiple]
+  ];
+  for (const [name, markers, lines, notice] of cases) {
+    const status = runWith(root, { ...env, ...markers }, 'status');
+    assert.equal(status.status, 0, name);
+    const out = status.stdout.trim();
+    assert.deepEqual(orchestratorLines(out), lines, name);
+    assert.equal(out.split('\n').filter(line => line === hint || line === multiple).join('|'), notice || '', name);
+    assert.equal(out.split('\n').filter(line => line.includes('Marker record')).length, 1, name);
+    const check = runWith(root, { ...env, ...markers }, 'check');
+    assert.equal(check.status, 0, name);
+    assert.deepEqual(check.stdout.trim().split('\n'), [...(notice === multiple ? [multiple] : []), 'Valid: 1 records. Structural validation only.'], name);
+  }
+  const codex = markerRepo(['codex']);
+  assert.match(ok(runWith(codex.root, { ...codex.env, CODEX_THREAD_ID: 'thread-1' }, 'status')), /^Orchestrator: gpt-6\.1-sol · high \(configured\)$/m);
+  const override = ok(runWith(root, { ...env, CLAUDE_CODE_CHILD_SESSION: '1' }, 'status', '--platform', 'cursor'));
+  assert.deepEqual(orchestratorLines(override), [cursorLine]);
+  assert.doesNotMatch(override, /detected|not installed/);
+  assert.deepEqual(orchestratorLines(ok(runWith(root, { ...env, CLAUDE_CODE_CHILD_SESSION: '1', CURSOR_AGENT: '1' }, 'status', '--platform', 'claude-code'))), [claudeLine]);
+});
+
+test('a marker for an uninstalled platform shows a notice and checks shared records only', () => {
+  const { root, env } = markerRepo(['cursor']);
+  ok(runWith(root, env, 'new', 'arc', 'Cursor record'));
+  const notice = 'Claude Code is not installed here (installed: cursor); run init --platform claude-code';
+  const marked = { ...env, CLAUDE_CODE_CHILD_SESSION: '1' };
+  const status = ok(runWith(root, marked, 'status'));
+  assert.deepEqual(orchestratorLines(status), []);
+  assert.equal(status.split('\n')[1], notice);
+  assert.match(status, /Cursor record/);
+  assert.deepEqual(ok(runWith(root, marked, 'check')).split('\n'), [notice, 'Valid: 1 records. Structural validation only.']);
+  assert.deepEqual(orchestratorLines(ok(runWith(root, { ...env, CURSOR_AGENT: '1' }, 'status'))), [cursorLine]);
+  const plain = ok(runWith(root, env, 'status'));
+  assert.deepEqual(orchestratorLines(plain), [cursorLine]);
+  assert.doesNotMatch(plain, /detected/);
+  const link = join(root, '.cursor/skills/dev-harness');
+  unlinkSync(link); writeFileSync(link, 'not a link');
+  assert.equal(runWith(root, marked, 'check').status, 0);
+  assert.notEqual(runWith(root, env, 'check').status, 0);
+});
+
+test('markers count for every registered adapter: Claude Code and Cursor with only claude-code installed is multiple', () => {
+  const { root, env } = markerRepo(['claude-code']);
+  const marked = { ...env, CLAUDE_CODE_CHILD_SESSION: '1', CURSOR_AGENT: '1' };
+  const status = runWith(root, marked, 'status');
+  assert.equal(status.status, 0);
+  assert.deepEqual(orchestratorLines(status.stdout), []);
+  assert.equal(status.stdout.split('\n')[1], multiple);
+  const check = runWith(root, marked, 'check');
+  assert.equal(check.status, 0);
+  assert.deepEqual(check.stdout.trim().split('\n'), [multiple, 'Valid: 0 records. Structural validation only.']);
+  assert.deepEqual(orchestratorLines(ok(runWith(root, { ...env, CLAUDE_CODE_CHILD_SESSION: '1' }, 'status'))), [claudeLine]);
+});
+
+test('a Claude Code marker narrows plain check; tampered Cursor artifacts fail only explicit Cursor check', () => {
+  const { root, env } = markerRepo(['cursor', 'claude-code']);
+  const marked = { ...env, CLAUDE_CODE_CHILD_SESSION: '1' };
+  writeFileSync(join(root, 'dev-harness/.harness/adapters/cursor/agents/dev-harness-owner.md'), '---\nmodel: tampered\n---\n');
+  assert.equal(ok(runWith(root, marked, 'check')), 'Valid: 0 records. Structural validation only.');
+  assert.notEqual(runWith(root, marked, 'check', '--platform', 'cursor').status, 0);
+  assert.notEqual(runWith(root, env, 'check').status, 0);
+});
+
+test('pinned status and check succeed with an agent marker on the baseline spawn', () => {
+  const source = sourceFixture();
+  for (const markers of [{ CLAUDE_CODE_CHILD_SESSION: '1' }, { CURSOR_AGENT: '1' }, { CLAUDE_CODE_CHILD_SESSION: '1', CURSOR_AGENT: '1' }]) {
+    const env = { ...process.env, ...markers };
+    const status = ok(spawnSync(process.execPath, [source.localCli, 'pinned', 'status'], { cwd: source.root, encoding: 'utf8', env }));
+    assert.match(status, /BASELINE STATUS/);
+    assert.match(status, /Pinned governance/);
+    const check = ok(spawnSync(process.execPath, [source.localCli, 'pinned', 'check'], { cwd: source.root, encoding: 'utf8', env }));
+    assert.match(check, /BASELINE CHECK/);
+    assert.match(check, /Valid: 1 records/);
+  }
 });

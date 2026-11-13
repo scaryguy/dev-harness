@@ -7,14 +7,40 @@ research → implementation → review → user confirmation → merged.
 
 ## Install
 
-Requires Node.js 20+. Run inside your project's Git repository:
+Requires Node.js 20+. Run inside your project's Git repository, then start a
+new agent session and ask it to start Dev Harness.
+
+**Cursor** (the default):
 
 ```sh
 npx github:scaryguy/dev-harness init
 ```
 
 Select **Grok 4.7 · High** in Cursor's model picker. Start a new chat:
-“Start dev harness. Let's build …”
+“Start dev harness. Use --platform cursor. Let's build …”
+
+**Codex CLI** (0.162.1+):
+
+```sh
+npx github:scaryguy/dev-harness init --platform codex
+codex --model gpt-6.1-sol --config model_reasoning_effort="high"
+```
+
+Say “Start dev harness. Use --platform codex.”
+
+**Claude Code** (2.1.44+):
+
+```sh
+npx github:scaryguy/dev-harness init --platform claude-code
+claude --model opus --effort high
+```
+
+Say “Start dev harness. Use --platform claude-code.”
+
+Init prints the launch guidance for your configured models. Install several
+platforms side by side by repeating `--platform` (it is additive and idempotent).
+Each agent session shows only its own platform; a human terminal shows every
+installed platform plus a hint.
 
 The agent shows your Git identity and current work, learns the repository,
 and proposes a reviewed plan. You approve implementation and integration.
@@ -25,9 +51,25 @@ Say “resume my work” to continue in another session.
 Only `arcs/` and `workstreams/` are visible inside `dev-harness/`.
 Internals and repository knowledge live in `dev-harness/.harness/`.
 Worktree checkouts stay outside the repository, in `../<repo-name>-worktrees/<ws-id>/`.
-`AGENTS.md` and Cursor discovery links are entry points.
+Entry points are `AGENTS.md` plus each installed platform's discovery files: Cursor links under `.cursor/`, `CLAUDE.md` and
+`.claude/` for Claude Code, and `.agents/skills` and `.codex/agents` for Codex.
 Edit `dev-harness/.harness/config.json` or ask the agent to configure it.
 Rerun init to refresh built-in instructions; configuration, knowledge, and records are preserved.
+
+A fresh install copies the packaged default, `dev-harness/.harness/defaults/config.json`
+(Cursor-only, version 1), to `dev-harness/.harness/config.json` byte for byte;
+`--platform ID` starts from that default instead. Init refreshes `defaults/` like
+`templates/`, and refuses before any write if the package's defaults are missing, a
+symlink, or invalid; refresh an installed CLI with `npx @scaryguy/dev-harness init`.
+Governance commands (`status`, `check`, `new`, `pinned`) never read `defaults/`.
+
+This package source repository installs Dev Harness on itself. Its own
+`dev-harness/.harness/config.json` is its install configuration only: it is
+never read as a default and is not packaged. Self-install (`node
+dev-harness/.harness/cli.mjs init`, run after integration) refuses before any
+write if it would change bytes of a shipped package path (package.json `files`);
+it may write only the repo's `config.json`, `AGENTS.md`, and native
+discovery files such as `CLAUDE.md` and `.claude/`.
 
 ## Remove
 
@@ -40,8 +82,9 @@ Code install, also remove the managed `CLAUDE.md` import,
 `.claude/agents/dev-harness-{planner,reviewer,owner}.md` files. Leave every
 other instruction file in place.
 
-Initial scaffold: Cursor setup, Codex CLI setup, Claude Code setup, record creation, status, and validation work.
-Gate approvals are agent-managed. Automatic enforcement and non-CLI Codex surfaces come later.
+Works today with Cursor, Codex CLI, and Claude Code: setup, arcs, workstreams, gates,
+independent reviews, status, and validation. Gate approvals and reviews are
+agent-managed; automatic enforcement and non-CLI Codex surfaces are planned.
 After npm publication, use `npx @scaryguy/dev-harness init`.
 Contributors can test locally with `npm pack`
 and run `npx --package=/path/to/package.tgz dev-harness init` in a test project.
@@ -118,11 +161,29 @@ claude -p --model opus --effort high
 
 Later inits render those commands from `adapters.claude-code.models.orchestrator`.
 
-`dev-harness status` shows every installed configured orchestrator model and
-shared records once. `status --platform cursor`, `status --platform codex`, or
-`status --platform claude-code` narrows model display; `check --platform cursor`,
-`check --platform codex`, or `check --platform claude-code` narrows native
-checks while still validating shared configuration and records. These commands never migrate configuration. Active platform identity comes from
+`dev-harness status` and `dev-harness check` detect the agent runtime from its
+native environment marker and scope to it: Claude Code sets
+`CLAUDE_CODE_CHILD_SESSION=1` (Claude Code 2.1.172 or later; not IDE extensions),
+Cursor agents set a non-empty `CURSOR_AGENT`, and Codex sets a non-empty
+`CODEX_THREAD_ID` (undocumented). `CLAUDECODE` is not used. With one detected,
+installed platform, status shows only its configured orchestrator and plain check
+validates only its native artifacts plus shared configuration and records. A
+marker for a platform that is not installed prints "<Platform> is not installed
+here (installed: …); run init --platform <id>"; several markers print "Multiple
+agent runtimes detected (…); rerun with --platform ID". Both show no orchestrator
+line, check only shared configuration and records, and exit 0. Without a marker
+(human terminals) every installed orchestrator model is shown, plus "Platform not
+detected; showing all installed. Agents: rerun with --platform ID" when several
+are installed; plain check then validates every installed platform. Shared
+records always appear once. `status --platform cursor`, `status --platform codex`,
+or `status --platform claude-code` always overrides detection; `check --platform
+cursor`, `check --platform codex`, or `check --platform claude-code` narrows native
+checks while still validating shared configuration and records. Known limits:
+markers leak into processes started from agent shells (tmux servers, `cursor .`,
+scripts), a human typing in an agent-owned terminal is detected as that agent,
+agent-to-agent invocation reports multiple runtimes, and older Claude Code falls
+back to showing all installed platforms. Run plain `check` without markers, or
+with `--platform ID` for each platform, to validate every native artifact. These commands never migrate configuration. Active platform identity comes from
 explicit native startup/invocation context, never the installed set. Configured
 model values describe intent; they do not verify the running native model.
 
