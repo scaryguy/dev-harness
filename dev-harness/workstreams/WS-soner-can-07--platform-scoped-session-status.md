@@ -9,8 +9,8 @@
   },
   "revision": 1,
   "created": "2026-11-13T09:36:20.436Z",
-  "updated": "2026-11-13T11:22:07.000Z",
-  "next": "Merged into the arc; arc smoke test result pending.",
+  "updated": "2026-11-13T11:44:20.000Z",
+  "next": "None; merged into the arc and smoke-tested.",
   "arc": "2026-11-12-soner-can--self-hosted-shipped-defaults",
   "sequence": 7,
   "gate": "MERGED",
@@ -224,3 +224,4 @@ User test install: `~/Desktop/delete/testdev` refreshed from an `npm pack` of th
 - 2026-11-13T11:08:40.000Z · Owner (opus, low) · SKILL.md 131-135 reworded per review note; 17 targeted tests pass.
 - 2026-11-13T11:08:40.000Z · Orchestrator · Verified the wording diff and git diff --check; refreshed ~/Desktop/delete/testdev with the WS-07 build. Gate → USER CONFIRM.
 - 2026-11-13T11:22:07.000Z · Orchestrator · WS commit 30f9ca3; merged into arc as 523a286 (--no-ff). Frozen paths + AGENTS.md identical to e7aabbc; baseline pinned skill/status/check pass; npm pack 18 files. Full npm test (in-session and env -i) running on a clean clone.
+- 2026-11-13T11:44:20.000Z · Orchestrator · Arc smoke at 523a286: npm test 65/65 inside Claude Code (env -i run superseded by the final arc smoke).

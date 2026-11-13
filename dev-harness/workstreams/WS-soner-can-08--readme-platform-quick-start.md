@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-11-13T11:26:07.749Z",
-  "updated": "2026-11-13T11:26:40.000Z",
-  "next": "Owner applies the README text; then code review.",
+  "updated": "2026-11-13T11:44:20.000Z",
+  "next": "Merged into the arc; final arc smoke pending.",
   "arc": "2026-11-12-soner-can--self-hosted-shipped-defaults",
   "sequence": 8,
-  "gate": "IMPLEMENT",
+  "gate": "MERGED",
   "dependencies": [
     "WS-soner-can-07--platform-scoped-session-status"
   ],
@@ -37,13 +37,31 @@
     "evidence": "go (reply to WS-08 proposal)"
   },
   "researchState": "approved",
-  "implementationState": "in-progress",
+  "implementationState": "reviewed",
   "researchReview": {
     "revision": 1,
     "outcome": "PASS-with-notes",
     "reviewer": "opus[effort=high]",
     "date": "2026-11-13T11:26:40.000Z",
     "notes": "Apply both the replacement block and the 'launch guidance' wording edit; confirm checks the README says 'launch guidance'."
+  },
+  "codeReview": {
+    "revision": 1,
+    "outcome": "PASS",
+    "reviewer": "opus[effort=high]",
+    "date": "2026-11-13T11:44:20.000Z",
+    "verified": "Reviewer checked worktree status, diff, stats, git diff --check, leftovers; owner-reported npm test 65/65 and init output comparisons."
+  },
+  "userConfirm": {
+    "revision": 1,
+    "actor": "User",
+    "date": "2026-11-13T11:44:20.000Z",
+    "scope": "Merge WS-08 into the arc and integrate the arc into main and push, once checks pass",
+    "evidence": "once passed, merge all and push main"
+  },
+  "merge": {
+    "wsCommit": "5b4446e5fdef1ec5a09fa0b8fb7c79c20abad51b",
+    "arcMerge": "7eb7e7ac3254c12104f4bebe357ac5e8a52700c0"
   }
 }
 ---
@@ -124,12 +142,15 @@ asserted at `cli.test.mjs:912`, `:1146`); npx line unchanged until npm publicati
 
 ## Gate
 
-Current: `IMPLEMENT`. Next action: owner applies the README text; then code review.
+Current: `MERGED` (into the arc). Next action: none.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
 | RESEARCH | 2026-11-13 | 2026-11-13 | PASS-with-notes |
-| IMPLEMENT | 2026-11-13 | — | — |
+| IMPLEMENT | 2026-11-13 | 2026-11-13 | ready-for-review |
+| REVIEW | 2026-11-13 | 2026-11-13 | PASS |
+| USER CONFIRM | 2026-11-13 | 2026-11-13 | User approved ("merge all") |
+| MERGED | 2026-11-13 | — | merge 7eb7e7a |
 
 ## Verification
 
@@ -139,10 +160,10 @@ no "Cursor discovery links" leftover; all non-README files unchanged vs the WS b
 
 ## User confirm checklist
 
-- [ ] README Install shows Cursor, Codex CLI, and Claude Code quick-starts that match what init prints.
-- [ ] Side-by-side installs and per-session platform display are explained.
-- [ ] Entry-point line names every platform's discovery files.
-- [ ] README says "Init prints the launch guidance for your configured models."
+- [x] README Install shows Cursor, Codex CLI, and Claude Code quick-starts that match what init prints.
+- [x] Side-by-side installs and per-session platform display are explained.
+- [x] Entry-point line names every platform's discovery files.
+- [x] README says "Init prints the launch guidance for your configured models."
 
 ## Approvals
 
@@ -154,3 +175,7 @@ no "Cursor discovery links" leftover; all non-README files unchanged vs the WS b
 - 2026-11-13T11:26:07.749Z · Soner Can · Created.
 - 2026-11-13T11:26:07.000Z · Orchestrator · Revision 1 contract recorded from plan r1 with review notes; WS RESEARCH review next.
 - 2026-11-13T11:26:40.000Z · Reviewer (opus, high) · WS RESEARCH review r1 PASS-with-notes. IMPLEMENT entered; WS branch/worktree created.
+- 2026-11-13T11:44:20.000Z · Owner (opus, low) · README applied; 65/65; init output matches.
+- 2026-11-13T11:44:20.000Z · Reviewer (opus, high) · Code review PASS.
+- 2026-11-13T11:44:20.000Z · User · "once passed, merge all and push main" — approves merging WS-08 and integrating the arc into main with push.
+- 2026-11-13T11:44:20.000Z · Orchestrator · WS commit 5b4446e; merged into arc as 7eb7e7a; frozen paths + AGENTS.md identical to e7aabbc; baseline pinned skill/status/check pass.
