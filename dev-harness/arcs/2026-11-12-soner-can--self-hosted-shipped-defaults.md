@@ -9,9 +9,9 @@
   },
   "revision": 1,
   "created": "2026-11-13T04:43:49.390Z",
-  "updated": "2026-11-13T04:46:31.000Z",
-  "next": "WS-06 RESEARCH review, then IMPLEMENT.",
-  "status": "draft",
+  "updated": "2026-11-13T04:50:03.000Z",
+  "next": "WS-06 IMPLEMENT, then code review.",
+  "status": "in-progress",
   "branch": "arc/2026-11-12-soner-can--self-hosted-shipped-defaults",
   "integrationBranch": "main",
   "baseSha": "e7aabbcbbf7993dc4c5b9b98c9ce0396831da675",
@@ -91,7 +91,7 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 
 | WS | Gate | Depends on | WS branch | Merge SHA |
 |----|------|------------|-----------|-----------|
-| [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md) | RESEARCH | — | — | — |
+| [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md) | IMPLEMENT | — | `ws/WS-soner-can-06--shipped-default-config-separation` | — |
 
 ## Integration checklist
 
@@ -113,3 +113,4 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 - 2026-11-13T04:44:15.218Z · Orchestrator · WS-06 created via baseline pinned dispatcher (baseSha e7aabbc).
 - 2026-11-13T04:44:50.000Z · Orchestrator · Plan r2 recorded; awaiting user implementation approval.
 - 2026-11-13T04:46:31.000Z · User · Implementation approval for WS-06 r1 ("continue"); arc scope locked.
+- 2026-11-13T04:50:03.000Z · Orchestrator · WS-06 RESEARCH review PASS-with-notes; WS-06 entered IMPLEMENT; arc in-progress.

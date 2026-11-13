@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-11-13T04:44:15.218Z",
-  "updated": "2026-11-13T04:46:31.000Z",
-  "next": "WS RESEARCH review of revision 1; on PASS create WS branch/worktree and enter IMPLEMENT.",
+  "updated": "2026-11-13T04:50:03.000Z",
+  "next": "Owner implements revision 1 in the WS worktree; then independent code review.",
   "arc": "2026-11-12-soner-can--self-hosted-shipped-defaults",
   "sequence": 6,
-  "gate": "RESEARCH",
+  "gate": "IMPLEMENT",
   "dependencies": [],
   "agentModels": {
     "platform": "claude-code",
@@ -21,14 +21,22 @@
     "reviewer": "opus[effort=high]",
     "owner": "opus[effort=low]"
   },
-  "researchState": "awaiting-user-go",
+  "researchState": "approved",
   "implementationApproval": {
     "revision": 1,
     "actor": "User",
     "date": "2026-11-13T04:46:31.000Z",
     "scope": "WS-06 IMPLEMENT only, after WS RESEARCH review PASS",
     "evidence": "continue (reply to: Approve implementation of WS-06 revision 1?)"
-  }
+  },
+  "researchReview": {
+    "revision": 1,
+    "outcome": "PASS-with-notes",
+    "reviewer": "opus[effort=high]",
+    "date": "2026-11-13T04:50:03.000Z",
+    "notes": "Owner notes: clone fixture (cli.test.mjs:143-168) must also copy defaults/ and stay hermetic after self-install; mutated-repo-config tests use a temporary package copy, never the live config.json; 'today's output' = output of the baseline CLI extracted from e7aabbc (or fixed expected bytes derived from it); defaults/config.json is validated with normalize() as well as JSON parse (fail closed); guarded set source is an owner implementation detail given the agreement test; Q2 tamper/delete comparison normalizes generated IDs/timestamps for `new`; package-contents test also asserts CLAUDE.md and .claude/ absent."
+  },
+  "implementationState": "in-progress"
 }
 ---
 
@@ -40,9 +48,9 @@
 
 ## Checkout
 
-Fill after implementation approval: WS branch `ws/WS-soner-can-06--shipped-default-config-separation` from
-`arc/2026-11-12-soner-can--self-hosted-shipped-defaults`; worktree
-`../dev-harness-worktrees/WS-soner-can-06--shipped-default-config-separation/`.
+WS branch: `ws/WS-soner-can-06--shipped-default-config-separation` from
+`arc/2026-11-12-soner-can--self-hosted-shipped-defaults` @ `f6ccbb7` (records commit follows).
+Worktree: `../dev-harness-worktrees/WS-soner-can-06--shipped-default-config-separation/`.
 
 ## Scope and approach
 
@@ -74,6 +82,8 @@ byte/path identical to e7aabbc); `isPackageSourceCheckout` required-file list; a
 
 ## Handoff
 
+Owner notes: clone fixture (cli.test.mjs:143-168) must also copy defaults/ and stay hermetic after self-install; mutated-repo-config tests use a temporary package copy, never the live config.json; 'today's output' = output of the baseline CLI extracted from e7aabbc (or fixed expected bytes derived from it); defaults/config.json is validated with normalize() as well as JSON parse (fail closed); guarded set source is an owner implementation detail given the agreement test; Q2 tamper/delete comparison normalizes generated IDs/timestamps for `new`; package-contents test also asserts CLAUDE.md and .claude/ absent.
+
 Owner: `dev-harness-owner` (Claude Code session override, opus low) in the external worktree above, after user
 implementation approval and WS RESEARCH review PASS. Likely files: `cli.mjs`, `integrations/install.mjs`,
 `cli.test.mjs`, `package.json`, `README.md`, new `defaults/config.json`. Owner does not stage, commit, or edit records.
@@ -101,11 +111,12 @@ Open: none.
 
 ## Gate
 
-Current: `RESEARCH` (user-approved). Next action: WS RESEARCH review of revision 1.
+Current: `IMPLEMENT`. Next action: owner implements revision 1; then independent code review.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
-| RESEARCH | 2026-11-12 | — | — |
+| RESEARCH | 2026-11-12 | 2026-11-12 | PASS-with-notes |
+| IMPLEMENT | 2026-11-12 | — | — |
 
 ## Verification
 
@@ -150,8 +161,12 @@ baseline `pinned skill/status/check` and `pinned check --platform claude-code`.
   `files`; npx hint on missing defaults; legacy-layout choice recorded).
 - 2026-11-13T04:46:31.000Z · User · Implementation approval for WS-06 revision 1 (IMPLEMENT only, after WS RESEARCH review PASS). Evidence: "continue".
 
+- 2026-11-13T04:50:03.000Z · Reviewer (opus, high) · WS RESEARCH review revision 1 PASS-with-notes (reviewed @ f6ccbb7).
+
 ## Progress ledger
 
 - 2026-11-13T04:44:15.218Z · Soner Can · Created.
 - 2026-11-13T04:44:50.000Z · Orchestrator · Revision 1 contract recorded from plan r2; awaiting user implementation approval.
 - 2026-11-13T04:46:31.000Z · User · Implementation approved for revision 1 ("continue"). WS RESEARCH review next.
+- 2026-11-13T04:50:03.000Z · Reviewer (opus, high) · RESEARCH review r1 PASS-with-notes; notes added to Handoff.
+- 2026-11-13T04:50:03.000Z · Orchestrator · RESEARCH exited (user approval + review PASS); IMPLEMENT entered; WS branch/worktree created.
