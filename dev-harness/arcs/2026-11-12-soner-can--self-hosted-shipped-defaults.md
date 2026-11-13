@@ -9,8 +9,8 @@
   },
   "revision": 4,
   "created": "2026-11-13T04:43:49.390Z",
-  "updated": "2026-11-13T12:08:43.000Z",
-  "next": "Integrated into main. Post-integration Claude Code self-install awaits separate user approval.",
+  "updated": "2026-11-13T19:26:24.000Z",
+  "next": "Complete. Claude Code installed in the source repo; future ARCs run natively on Claude Code.",
   "status": "complete",
   "branch": "arc/2026-11-12-soner-can--self-hosted-shipped-defaults",
   "integrationBranch": "main",
@@ -115,7 +115,7 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 - [x] Arc smoke tests after each WS merge and final integration checks passed (npm test; baseline `pinned skill`,
   `pinned status`, `pinned check`; frozen paths identical to baseSha; `npm pack` contents).
 - [x] User approved integration of the reviewed revision ("once passed, merge all and push main", 2026-11-13T11:44:20.000Z).
-- [ ] Post-integration, separately approved: on clean `main`, `node dev-harness/.harness/cli.mjs init --platform claude-code`;
+- [x] Post-integration, separately approved: on clean `main`, `node dev-harness/.harness/cli.mjs init --platform claude-code`;
   commit `config.json`, `CLAUDE.md`, `.claude/agents/dev-harness-{planner,reviewer,owner}.md`, `.claude/skills/dev-harness`
   and the refreshed root `AGENTS.md` managed block together (no attribution trailer); verify per WS-06 Verification
   (including `npm test` without `claude` on PATH and a throwaway ARC's pinned checks from a fresh clone) and that the root
@@ -155,3 +155,4 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 - 2026-11-13T11:51:26.000Z · Orchestrator · WS-09 code review PASS; merged into arc as f297137. All ARC workstreams merged.
 - 2026-11-13T12:08:27.000Z · Orchestrator · Arc smoke at 523a286 (after WS-07) env -i: 65/65. Final arc smoke at 7eb7e7a (WS-09 is README-only): npm test 65/65 inside Claude Code and 65/65 via env -i, 0 skipped; npm pack 18 files with defaults/config.json, without config.json; frozen paths + AGENTS.md identical to e7aabbc; baseline pinned skill/status/check pass.
 - 2026-11-13T12:08:43.000Z · Orchestrator · Integrated into main as 1fdcf49 (--no-ff; tree identical to arc tip d656fd4) under user approval "once passed, merge all and push main". Pushed to origin/main.
+- 2026-11-13T19:26:24.000Z · User/Orchestrator · Post-integration self-install approved ("okay"). `init --platform claude-code` on main changed only config.json (v2 cursor+claude-code), AGENTS.md (managed block == sourceEntry), CLAUDE.md, .claude/agents/*, .claude/skills/dev-harness; shipped paths unchanged; status shows only the Claude Code orchestrator; check, check --platform claude-code|cursor pass; fresh install == defaults/config.json. Disposable clone with the commit: throwaway ARC baseline pinned skill/status/check (+ --platform claude-code|cursor) pass; npm test 65/65 with claude; without claude 64/65 where the one failure (codex readiness test) was caused by the verification PATH (symlink farm put codex next to git); rerun of the affected 14 tests with every claude-containing PATH dir removed: 14/14 pass.

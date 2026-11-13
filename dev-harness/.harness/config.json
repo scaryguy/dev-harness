@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "platform": "cursor",
   "models": {
     "orchestrator": "grok-4.7[effort=high]",
@@ -9,5 +9,47 @@
     "integrationBranch": "main",
     "requireExplicitWriteApproval": true
   },
-  "checks": []
+  "checks": [],
+  "installedPlatforms": [
+    "cursor",
+    "claude-code"
+  ],
+  "adapters": {
+    "cursor": {
+      "models": {
+        "orchestrator": {
+          "model": "grok-4.7[effort=high]"
+        },
+        "planner": {
+          "model": "grok-4.7[effort=high]"
+        },
+        "reviewer": {
+          "model": "grok-4.7[effort=high]"
+        },
+        "owner": {
+          "model": "grok-4.7[effort=high]"
+        }
+      }
+    },
+    "claude-code": {
+      "models": {
+        "orchestrator": {
+          "model": "opus",
+          "effort": "high"
+        },
+        "planner": {
+          "model": "opus",
+          "effort": "high"
+        },
+        "reviewer": {
+          "model": "opus",
+          "effort": "high"
+        },
+        "owner": {
+          "model": "opus",
+          "effort": "low"
+        }
+      }
+    }
+  }
 }
