@@ -9,8 +9,8 @@
   },
   "revision": 2,
   "created": "2026-11-13T04:43:49.390Z",
-  "updated": "2026-11-13T09:36:20.000Z",
-  "next": "WS-07 RESEARCH review; WS-06 USER CONFIRM (WS-07 branches after WS-06 merges).",
+  "updated": "2026-11-13T09:40:17.000Z",
+  "next": "Arc smoke test after WS-06 merge; WS-07 RESEARCH re-review, then IMPLEMENT.",
   "status": "in-progress",
   "branch": "arc/2026-11-12-soner-can--self-hosted-shipped-defaults",
   "integrationBranch": "main",
@@ -62,7 +62,7 @@ the package ships, so this repo can dogfood any platform without changing fresh-
 | Source-checkout init changing shipped files | silently rewrites | fails closed before any write |
 | Repo's own Claude Code install | not possible safely | post-integration step on main |
 
-In scope: [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md). Out of scope:
+In scope: [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md), then [WS-07](../workstreams/WS-soner-can-07--platform-scoped-session-status.md) (platform-scoped session status). Out of scope:
 changing any platform default models, relocating Cursor agent rendering, changing this ARC's pinned governance, any
 self-install inside the ARC (config.json/templates/adapters are frozen baseline companions).
 
@@ -86,6 +86,8 @@ Locked:
 
 - 2026-11-13T09:33:01.000Z · User ("update it then!?", after being asked to accept or adjust WS-07 decisions 1–4): accepted recommended defaults and directed implementation of WS-07 (subject to plan review and WS RESEARCH review PASS). Markers: Claude Code `CLAUDE_CODE_CHILD_SESSION=1`, Cursor `CURSOR_AGENT`, Codex `CODEX_THREAD_ID`; no `CLAUDECODE` fallback. (1) marker for an uninstalled platform → no orchestrator line + not-installed notice, check covers config/shared records, exit 0; (2) multiple markers → no orchestrator lines + ambiguity notice; (3) no marker with several installed → show all + hint; (4) no CLAUDECODE fallback.
 
+- 2026-11-13T09:40:17.000Z · User ("go"): WS-07 A–C accepted (multiple markers exit 0; check prints notices but not the hint; detection over all registered adapters). WS-06 confirmed for merge into the arc; case-folding gap recorded as a known limitation for a future arc.
+
 Open: none.
 
 ## Branch and rollup
@@ -95,7 +97,7 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 
 | WS | Gate | Depends on | WS branch | Merge SHA |
 |----|------|------------|-----------|-----------|
-| [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md) | USER CONFIRM | — | `ws/WS-soner-can-06--shipped-default-config-separation` | — |
+| [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md) | MERGED | — | `ws/WS-soner-can-06--shipped-default-config-separation` | `d332a9f886edd80c9294e9c5a4e8fb673d179039` |
 | [WS-07](../workstreams/WS-soner-can-07--platform-scoped-session-status.md) | RESEARCH | WS-06 MERGED | — | — |
 
 ## Integration checklist
@@ -128,3 +130,4 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 - 2026-11-13T09:33:01.000Z · User · WS-07 decisions 1–4 accepted as recommended; implementation directed ("update it then!?"). Plan review started.
 - 2026-11-13T09:36:20.000Z · Reviewer (opus, high) · WS-07 plan r1 CHANGES-REQUESTED; r2 PASS-with-notes.
 - 2026-11-13T09:36:20.000Z · Orchestrator · WS-07 created via baseline pinned dispatcher; post-integration checklist adds root AGENTS.md refresh.
+- 2026-11-13T09:40:17.000Z · Orchestrator · WS-06 merged into arc as d332a9f; frozen paths + AGENTS.md identical to e7aabbc; baseline pinned skill/status/check pass; npm pack OK; full npm test running.

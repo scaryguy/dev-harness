@@ -9,8 +9,8 @@
   },
   "revision": 1,
   "created": "2026-11-13T09:36:20.436Z",
-  "updated": "2026-11-13T09:36:20.000Z",
-  "next": "WS RESEARCH review of revision 1; then branch after WS-06 merges into the arc.",
+  "updated": "2026-11-13T09:40:17.000Z",
+  "next": "WS RESEARCH re-review of revision 1 (A–C added); then branch from the arc tip.",
   "arc": "2026-11-12-soner-can--self-hosted-shipped-defaults",
   "sequence": 7,
   "gate": "RESEARCH",
@@ -106,6 +106,10 @@ asks; WS-07 after WS-06; supersedes 2026-10-14 decisions) and "update it then!?"
    records only.
 3. No marker with several installed → show all + hint "Platform not detected; showing all installed. Agents: rerun with --platform ID".
 4. No CLAUDECODE fallback.
+5. (A) Multiple markers: `status` and `check` exit 0.
+6. (B) Plain `check` prints the not-installed and multiple-markers notices but not the decision-3 hint; its "Valid: N records" line is unchanged.
+7. (C) Detection counts markers of every registered adapter, installed or not; e.g. Claude Code + Cursor markers with only claude-code installed → decision 2 (multiple).
+   (5–7 accepted by the user on 2026-11-13T09:40:17.000Z: "go".)
 
 Known limits (documented): markers leak into processes started from agent shells; a human typing in an agent-owned terminal is
 detected as that agent; agent→agent invocation yields multiple markers (decision 2); Claude Code < 2.1.172 undetectable (decision 3).
@@ -147,7 +151,11 @@ cursor-agent, and codex (confirm CODEX_THREAD_ID survives `shell_environment_pol
 - 2026-11-13T09:36:20.000Z · Reviewer (opus, high) · Plan r2 PASS-with-notes.
 - 2026-11-13 · User · Implementation directed for revision 1 ("update it then!?"), subject to plan and WS RESEARCH review PASS.
 
+- 2026-11-13T09:40:17.000Z · Reviewer (opus, high) · WS RESEARCH review r1 CHANGES-REQUESTED (exit code for multiple markers; check notices; detection set).
+- 2026-11-13T09:40:17.000Z · User · Accepted A–C as recommended ("go").
+
 ## Progress ledger
 
 - 2026-11-13T09:36:20.436Z · Soner Can · Created.
 - 2026-11-13T09:36:20.000Z · Orchestrator · Revision 1 contract recorded from plan r2; WS RESEARCH review next; branches after WS-06 merges.
+- 2026-11-13T09:40:17.000Z · Orchestrator · Decisions 5–7 (A–C) added to the contract; WS RESEARCH re-review requested.

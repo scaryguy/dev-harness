@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-11-13T04:44:15.218Z",
-  "updated": "2026-11-13T06:15:27.000Z",
-  "next": "User tests the checklist and confirms revision 1 (or requests the case-folding fix), then merge WS-06 into the arc.",
+  "updated": "2026-11-13T09:40:17.000Z",
+  "next": "Merged into the arc; arc smoke test (npm test) result pending.",
   "arc": "2026-11-12-soner-can--self-hosted-shipped-defaults",
   "sequence": 6,
-  "gate": "USER CONFIRM",
+  "gate": "MERGED",
   "dependencies": [],
   "agentModels": {
     "platform": "claude-code",
@@ -62,7 +62,21 @@
         "date": "2026-11-12"
       }
     ]
-  }
+  },
+  "userConfirm": {
+    "revision": 1,
+    "actor": "User",
+    "date": "2026-11-13T09:40:17.000Z",
+    "scope": "Merge WS-06 revision 1 into the arc only; case-folding gap recorded as known limitation",
+    "evidence": "go (reply to request for WS-06 confirm option)"
+  },
+  "merge": {
+    "wsCommit": "86752d551aeea8c9cee16b731bf12a3ef89e84cf",
+    "arcMerge": "d332a9f886edd80c9294e9c5a4e8fb673d179039"
+  },
+  "knownLimitations": [
+    "Case-insensitive filesystems: an adapter planning a differently-cased shipped path passes both the collision check and the shipped-file guard (exact string comparison); requires adapter code; same gap exists at baseline e7aabbc. Deferred to a future arc."
+  ]
 }
 ---
 
@@ -137,7 +151,7 @@ Open: none.
 
 ## Gate
 
-Current: `USER CONFIRM`. Next action: user tests and confirms revision 1; then merge into the arc.
+Current: `MERGED` (into the arc). Next action: none; arc smoke result recorded in the arc.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
@@ -146,7 +160,8 @@ Current: `USER CONFIRM`. Next action: user tests and confirms revision 1; then m
 | REVIEW | 2026-11-12 | 2026-11-12 | CHANGES-REQUESTED |
 | IMPLEMENT | 2026-11-12 | 2026-11-12 | ready-for-review |
 | REVIEW | 2026-11-12 | 2026-11-12 | PASS-with-notes |
-| USER CONFIRM | 2026-11-12 | — | — |
+| USER CONFIRM | 2026-11-12 | 2026-11-13 | User confirmed ("go") |
+| MERGED | 2026-11-13 | — | merge d332a9f |
 
 ## Verification
 
@@ -179,12 +194,12 @@ User test handoff: worktree `/Users/scaryguy/Projects/dev-harness-worktrees/WS-s
 
 ## User confirm checklist
 
-- [ ] Fresh `npx dev-harness init` (no flag) in a new repo produces exactly today's v1 Cursor setup.
-- [ ] Fresh `--platform claude-code` / `--platform codex` installs match today's output.
-- [ ] Existing installs refresh with config, knowledge, and records preserved.
-- [ ] Package contains `defaults/config.json` and not the repo's own `config.json`.
-- [ ] All tests pass, including without `claude` on PATH.
-- [ ] Baseline pinned skill/status/check pass on the ARC after merge.
+- [x] Fresh `npx dev-harness init` (no flag) in a new repo produces exactly today's v1 Cursor setup.
+- [x] Fresh `--platform claude-code` / `--platform codex` installs match today's output.
+- [x] Existing installs refresh with config, knowledge, and records preserved.
+- [x] Package contains `defaults/config.json` and not the repo's own `config.json`.
+- [x] All tests pass, including without `claude` on PATH.
+- [x] Baseline pinned skill/status/check pass on the ARC after merge.
 
 ## Approvals
 
@@ -199,6 +214,8 @@ User test handoff: worktree `/Users/scaryguy/Projects/dev-harness-worktrees/WS-s
 
 - 2026-11-13T06:15:27.000Z · Reviewer (opus, high) · Code re-review revision 1 PASS-with-notes (final; note: Case-insensitive filesystems: an adapter planning a differently-cased shipped path (e.g. .harness/Templates/arc.md) passes both the collision check (install.mjs:87-88) and the shipped-file guard (cli.mjs:101), which compare exact strings. Requires adapter code; collision layer has the same gap at baseline e7aabbc.)
 
+- 2026-11-13T09:40:17.000Z · User · USER CONFIRM: merge WS-06 revision 1 into the arc; case-folding gap accepted as a known limitation (evidence: "go"). Checklist items verified by the independent reviewer; the user did not report separate manual results.
+
 ## Progress ledger
 
 - 2026-11-13T04:44:15.218Z · Soner Can · Created.
@@ -211,3 +228,4 @@ User test handoff: worktree `/Users/scaryguy/Projects/dev-harness-worktrees/WS-s
 - 2026-11-13T05:41:33.000Z · Owner (opus, low) · Review findings 1-4 addressed (owner-reported 58/58 twice). Gate → REVIEW.
 - 2026-11-13T06:15:27.000Z · Owner (opus, low) · Guard test fixed to assert the protecting layer per category; 58/58.
 - 2026-11-13T06:15:27.000Z · Reviewer (opus, high) · Final code review PASS-with-notes. Gate → USER CONFIRM.
+- 2026-11-13T09:40:17.000Z · Orchestrator · WS commit 86752d5 on ws branch; merged into arc as d332a9f (--no-ff). Frozen paths and AGENTS.md identical to e7aabbc; baseline pinned skill/status/check pass; npm pack 18 files with defaults/config.json, without config.json. Full npm test on the arc running.
