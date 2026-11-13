@@ -7,3 +7,6 @@ export function lookup(id) {
   if (!adapter) throw Error('Unsupported platform: ' + id);
   return adapter;
 }
+export function detected(env) {
+  return adapters.filter(adapter => typeof adapter.detect === 'function' && adapter.detect(env) === true).map(adapter => adapter.id);
+}

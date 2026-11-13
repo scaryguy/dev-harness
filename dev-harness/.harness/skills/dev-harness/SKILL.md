@@ -107,13 +107,17 @@ Run commands from the repository root. At session start, run
 `node dev-harness/.harness/cli.mjs status` and present it once using the summary below,
 not the raw CLI output.
 Read `dev-harness/.harness/config.json`, `dev-harness/.harness/knowledge/context.md`, and relevant records.
-Active platform identity must come from explicit native startup/invocation context;
-never infer it from the installed set. Ask if that context is missing. Version 1
+Active platform identity must come from explicit native startup/invocation context
+or the native runtime marker status detects; never infer it from the installed set.
+Ask if that context is missing. Version 1
 uses `models.orchestrator` and `models.subagents`. Version 2 uses authoritative
 `adapters[ID].models[ROLE]` settings for that explicit platform; root `models`
-is preserved compatibility data. Unqualified status displays every installed
-configured orchestrator model and shared records once; `--platform ID` narrows
-model display without duplicating or filtering shared records.
+is preserved compatibility data. Unqualified status detects the agent runtime from
+its native environment marker and shows only that platform's configured orchestrator;
+without a marker it shows every installed one plus a "Platform not detected" hint.
+`--platform ID` always wins. Shared records are never duplicated or filtered. If
+status reports multiple runtimes, an uninstalled platform, or the hint while you are
+an agent, rerun with `--platform ID` for your known platform or ask the user.
 Outside a source ARC, after changing authoritative configured role models, rerun
 `node dev-harness/.harness/cli.mjs init`.
 Check the orchestrator is configured for the requested model. If model identity is not
@@ -124,8 +128,11 @@ observable, ask the user to confirm the picker; do not claim it was verified.
 Use one fenced plain-text ASCII table per active arc, current user's arcs first.
 Show identity and branch once. Display the configured orchestrator from
 `models.orchestrator` for version 1, or `adapters[ID].models.orchestrator` for
-version 2. Plain status shows all installed models, labeled by integration when
-multiple are present; an explicit selector shows that integration. Label each
+version 2. Present only your own platform's orchestrator: plain status shows the
+detected platform; an explicit selector shows that integration. If nothing is
+detected, or a multiple-runtimes or not-installed notice appears, rerun
+`status --platform ID` with your own platform or ask the user, then present only
+your platform. Only a human terminal sees all installed platforms. Label each
 "Orchestrator: <readable model name> (configured)", never observed runtime identity.
 Shared arcs and workstreams appear once regardless of the model display.
 Use arc titles and exact statuses, not filenames.
@@ -287,11 +294,12 @@ Run `node dev-harness/.harness/cli.mjs check` after updates. It checks structure
 Do not maintain a separate handwritten index. Use status to derive the rollup.
 
 Use the active adapter's configured role model for every delegation, including exploration.
-Platform identity comes from explicit native startup/invocation context, never from
-which integrations are installed. If identity is unclear, ask before delegation.
-Use `status --platform ID` and `check --platform ID` for that installed integration;
-shared records and configuration remain validated. Unqualified status shows all
-installed configured orchestrator models and shared records once.
+Platform identity comes from explicit native startup/invocation context or the
+detected native marker, never from which integrations are installed. If identity is
+unclear, ask before delegation. Use `status --platform ID` and `check --platform ID`
+for that installed integration; shared records and configuration remain validated.
+Plain status and check scope to the detected platform. Markers leak into processes
+started from an agent shell, and agent-to-agent invocation reports multiple runtimes.
 For Cursor, startup context is `--platform cursor`; planner, reviewer, and owner
 use `.cursor/agents/dev-harness-{planner,reviewer,owner}.md`. Launch them in the background.
 For Codex CLI, follow this only when startup context is explicit `--platform codex`.

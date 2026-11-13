@@ -8,6 +8,13 @@ import { delimiter, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { safePath } from './integrations/install.mjs';
 
+// Agent runtime markers scope plain status/check; tests must not inherit the runner's agent session.
+const markerNames = ['CLAUDE_CODE_CHILD_SESSION', 'CLAUDECODE', 'CURSOR_AGENT', 'CURSOR_TRACE_ID', 'CODEX_THREAD_ID', 'CODEX_SANDBOX', 'AI_AGENT'];
+for (const name of Object.keys(process.env)) {
+  if (markerNames.includes(name) || ['CLAUDE_CODE_', 'CURSOR_', 'CODEX_'].some(prefix => name.startsWith(prefix))) delete process.env[name];
+}
+const hint = 'Platform not detected; showing all installed. Agents: rerun with --platform ID';
+
 const cli = join(dirname(fileURLToPath(import.meta.url)), 'cli.mjs');
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'dev-harness-test-'));
@@ -976,6 +983,7 @@ test('codex init installs only Codex, stays idempotent, and preserves Cursor whe
     'Cursor · Orchestrator: grok-4.7[effort=xhigh] (configured)',
     'Codex · Orchestrator: gpt-6.1-sol · high (configured)'
   ]);
+  assert.equal(status.split('\n').filter(line => line === hint).length, 1);
   const arc = ok(runWith(cursorRoot, env, 'new', 'arc', 'Shared record'));
   const shared = ok(runWith(cursorRoot, env, 'status'));
   assert.equal(shared.split('\n').filter(line => line.includes(` · ${arc} · `)).length, 1);
@@ -1234,6 +1242,7 @@ test('claude-code adds onto Cursor and Codex and narrows status and check', () =
     'Codex · Orchestrator: gpt-6.1-sol · high (configured)',
     'Claude Code · Orchestrator: opus · high (configured)'
   ]);
+  assert.equal(status.split('\n').filter(line => line === hint).length, 1);
   const arc = ok(runWith(root, env, 'new', 'arc', 'Shared record'));
   const shared = ok(runWith(root, env, 'status'));
   assert.equal(shared.split('\n').filter(line => line.includes(` · ${arc} · `)).length, 1);
@@ -1403,7 +1412,12 @@ test('mutated repo config never leaks into fresh installs; platform installs mat
     if (!baseline) { t.skip('baseline e7aabbc unavailable (shallow clone)'); continue; }
     const expected = fixture();
     ok(spawnSync(process.execPath, [baseline, 'init', ...args], { cwd: expected, encoding: 'utf8', env }));
-    assert.deepEqual(installSnapshot(candidate), installSnapshot(expected), args.join(' '));
+    // WS-07 intentionally changes the managed AGENTS.md entry and the shipped skill; all other install bytes match e7aabbc.
+    const changed = ['AGENTS.md', 'dev-harness/.harness/skills/dev-harness/SKILL.md'];
+    const comparable = root => installSnapshot(root).map(item => changed.includes(item[0]) ? item.slice(0, 2) : item);
+    assert.deepEqual(comparable(candidate), comparable(expected), args.join(' '));
+    assert.ok(readFileSync(join(candidate, changed[1])).equals(readFileSync(join(dirname(cli), 'skills/dev-harness/SKILL.md'))), args.join(' '));
+    assert.equal(managedBlock(readFileSync(join(candidate, 'AGENTS.md'), 'utf8')), ['<!-- dev-harness:start -->', ...entryLines, '<!-- dev-harness:end -->'].join('\n'), args.join(' '));
   }
 });
 
@@ -1554,4 +1568,133 @@ test('legacy-layout source checkout refuses self-install with a clear error befo
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Source checkout self-install requires an existing dev-harness\/\.harness\/config\.json/);
   assert.deepEqual(snapshotTree(source.root), before);
+});
+
+const entryLines = [
+  'At the start of a session, read `dev-harness/.harness/skills/dev-harness/SKILL.md`.',
+  "Run `node dev-harness/.harness/cli.mjs status` and present its data using the skill's Session summary template, not raw output.",
+  'Status shows only your detected platform; if it reports several platforms or an undetected or uninstalled platform, rerun with `--platform ID` for your own platform or ask the user. Present only your platform.',
+  'Follow the skill before planning or changing this project. Never add a co-author line to any commit.'
+];
+const outsideSentence = "Outside a source ARC, read `dev-harness/.harness/skills/dev-harness/SKILL.md` and run `node dev-harness/.harness/cli.mjs status`, which shows only your detected platform; if it reports several platforms or an undetected or uninstalled platform, rerun with `--platform ID` for your own platform or ask the user, and present only your platform.";
+function managedBlock(text) { return text.slice(text.indexOf('<!-- dev-harness:start -->'), text.indexOf('<!-- dev-harness:end -->') + '<!-- dev-harness:end -->'.length); }
+function withoutOutside(block) { return block.replace(/ Outside a source ARC, [^\n]*?(?= Present status using)/, ''); }
+
+test('ordinary AGENTS.md entry tells agents to present only their detected platform', () => {
+  const root = fixture();
+  ok(run(root, 'init'));
+  assert.equal(managedBlock(readFileSync(join(root, 'AGENTS.md'), 'utf8')), ['<!-- dev-harness:start -->', ...entryLines, '<!-- dev-harness:end -->'].join('\n'));
+});
+
+test('source entry changes only the outside-ARC sentence; bootstrap portion is byte-identical to e7aabbc', t => {
+  const source = sourceFixture();
+  const block = managedBlock(readFileSync(join(source.root, 'AGENTS.md'), 'utf8'));
+  assert.equal(block.split(outsideSentence).length, 2);
+  assert.match(block, /^<!-- dev-harness:start -->\nFor every source-repository ARC, validate its full baseSha/);
+  if (!baselineRuntime()) return t.skip('baseline commit unavailable');
+  const baselineCli = execFileSync('git', ['show', `${baselineSha}:dev-harness/.harness/cli.mjs`], { cwd: packageRoot, encoding: 'utf8' });
+  const literal = text => text.match(/^const sourceEntry = `\$\{markerStart\}\\n(.*)\\n\$\{markerEnd\}`;$/m)[1];
+  const before = literal(baselineCli);
+  const after = literal(readFileSync(cli, 'utf8'));
+  assert.notEqual(before, after);
+  assert.match(before, / Outside a source ARC, /);
+  assert.equal(withoutOutside(after), withoutOutside(before));
+  assert.notEqual(withoutOutside(after), after);
+  assert.equal(block, `<!-- dev-harness:start -->\n${after.replaceAll('\\`', '`')}\n<!-- dev-harness:end -->`);
+});
+
+function markerRepo(platforms) {
+  const { env } = claudeEnvironment();
+  const root = fixture();
+  ok(runWith(root, env, 'init', ...platforms.flatMap(id => ['--platform', id])));
+  return { root, env };
+}
+const orchestratorLines = output => output.split('\n').filter(line => line.includes('Orchestrator:'));
+const cursorLine = 'Orchestrator: grok-4.7[effort=high] (configured)';
+const claudeLine = 'Orchestrator: opus · high (configured)';
+const multiple = 'Multiple agent runtimes detected (Cursor, Claude Code); rerun with --platform ID';
+
+test('plain status and check scope to the detected runtime marker; --platform wins', () => {
+  const { root, env } = markerRepo(['cursor', 'claude-code']);
+  ok(runWith(root, env, 'new', 'arc', 'Marker record'));
+  const cases = [
+    ['claude code', { CLAUDE_CODE_CHILD_SESSION: '1' }, [claudeLine], null],
+    ['cursor', { CURSOR_AGENT: '1' }, [cursorLine], null],
+    ['claudecode is ignored', { CLAUDECODE: '1' }, ['Cursor · ' + cursorLine, 'Claude Code · ' + claudeLine], hint],
+    ['child session not 1', { CLAUDE_CODE_CHILD_SESSION: '0', CURSOR_AGENT: '' }, ['Cursor · ' + cursorLine, 'Claude Code · ' + claudeLine], hint],
+    ['none', {}, ['Cursor · ' + cursorLine, 'Claude Code · ' + claudeLine], hint],
+    ['multiple', { CLAUDE_CODE_CHILD_SESSION: '1', CURSOR_AGENT: '1' }, [], multiple]
+  ];
+  for (const [name, markers, lines, notice] of cases) {
+    const status = runWith(root, { ...env, ...markers }, 'status');
+    assert.equal(status.status, 0, name);
+    const out = status.stdout.trim();
+    assert.deepEqual(orchestratorLines(out), lines, name);
+    assert.equal(out.split('\n').filter(line => line === hint || line === multiple).join('|'), notice || '', name);
+    assert.equal(out.split('\n').filter(line => line.includes('Marker record')).length, 1, name);
+    const check = runWith(root, { ...env, ...markers }, 'check');
+    assert.equal(check.status, 0, name);
+    assert.deepEqual(check.stdout.trim().split('\n'), [...(notice === multiple ? [multiple] : []), 'Valid: 1 records. Structural validation only.'], name);
+  }
+  const codex = markerRepo(['codex']);
+  assert.match(ok(runWith(codex.root, { ...codex.env, CODEX_THREAD_ID: 'thread-1' }, 'status')), /^Orchestrator: gpt-6\.1-sol · high \(configured\)$/m);
+  const override = ok(runWith(root, { ...env, CLAUDE_CODE_CHILD_SESSION: '1' }, 'status', '--platform', 'cursor'));
+  assert.deepEqual(orchestratorLines(override), [cursorLine]);
+  assert.doesNotMatch(override, /detected|not installed/);
+  assert.deepEqual(orchestratorLines(ok(runWith(root, { ...env, CLAUDE_CODE_CHILD_SESSION: '1', CURSOR_AGENT: '1' }, 'status', '--platform', 'claude-code'))), [claudeLine]);
+});
+
+test('a marker for an uninstalled platform shows a notice and checks shared records only', () => {
+  const { root, env } = markerRepo(['cursor']);
+  ok(runWith(root, env, 'new', 'arc', 'Cursor record'));
+  const notice = 'Claude Code is not installed here (installed: cursor); run init --platform claude-code';
+  const marked = { ...env, CLAUDE_CODE_CHILD_SESSION: '1' };
+  const status = ok(runWith(root, marked, 'status'));
+  assert.deepEqual(orchestratorLines(status), []);
+  assert.equal(status.split('\n')[1], notice);
+  assert.match(status, /Cursor record/);
+  assert.deepEqual(ok(runWith(root, marked, 'check')).split('\n'), [notice, 'Valid: 1 records. Structural validation only.']);
+  assert.deepEqual(orchestratorLines(ok(runWith(root, { ...env, CURSOR_AGENT: '1' }, 'status'))), [cursorLine]);
+  const plain = ok(runWith(root, env, 'status'));
+  assert.deepEqual(orchestratorLines(plain), [cursorLine]);
+  assert.doesNotMatch(plain, /detected/);
+  const link = join(root, '.cursor/skills/dev-harness');
+  unlinkSync(link); writeFileSync(link, 'not a link');
+  assert.equal(runWith(root, marked, 'check').status, 0);
+  assert.notEqual(runWith(root, env, 'check').status, 0);
+});
+
+test('markers count for every registered adapter: Claude Code and Cursor with only claude-code installed is multiple', () => {
+  const { root, env } = markerRepo(['claude-code']);
+  const marked = { ...env, CLAUDE_CODE_CHILD_SESSION: '1', CURSOR_AGENT: '1' };
+  const status = runWith(root, marked, 'status');
+  assert.equal(status.status, 0);
+  assert.deepEqual(orchestratorLines(status.stdout), []);
+  assert.equal(status.stdout.split('\n')[1], multiple);
+  const check = runWith(root, marked, 'check');
+  assert.equal(check.status, 0);
+  assert.deepEqual(check.stdout.trim().split('\n'), [multiple, 'Valid: 0 records. Structural validation only.']);
+  assert.deepEqual(orchestratorLines(ok(runWith(root, { ...env, CLAUDE_CODE_CHILD_SESSION: '1' }, 'status'))), [claudeLine]);
+});
+
+test('a Claude Code marker narrows plain check; tampered Cursor artifacts fail only explicit Cursor check', () => {
+  const { root, env } = markerRepo(['cursor', 'claude-code']);
+  const marked = { ...env, CLAUDE_CODE_CHILD_SESSION: '1' };
+  writeFileSync(join(root, 'dev-harness/.harness/adapters/cursor/agents/dev-harness-owner.md'), '---\nmodel: tampered\n---\n');
+  assert.equal(ok(runWith(root, marked, 'check')), 'Valid: 0 records. Structural validation only.');
+  assert.notEqual(runWith(root, marked, 'check', '--platform', 'cursor').status, 0);
+  assert.notEqual(runWith(root, env, 'check').status, 0);
+});
+
+test('pinned status and check succeed with an agent marker on the baseline spawn', () => {
+  const source = sourceFixture();
+  for (const markers of [{ CLAUDE_CODE_CHILD_SESSION: '1' }, { CURSOR_AGENT: '1' }, { CLAUDE_CODE_CHILD_SESSION: '1', CURSOR_AGENT: '1' }]) {
+    const env = { ...process.env, ...markers };
+    const status = ok(spawnSync(process.execPath, [source.localCli, 'pinned', 'status'], { cwd: source.root, encoding: 'utf8', env }));
+    assert.match(status, /BASELINE STATUS/);
+    assert.match(status, /Pinned governance/);
+    const check = ok(spawnSync(process.execPath, [source.localCli, 'pinned', 'check'], { cwd: source.root, encoding: 'utf8', env }));
+    assert.match(check, /BASELINE CHECK/);
+    assert.match(check, /Valid: 1 records/);
+  }
 });
