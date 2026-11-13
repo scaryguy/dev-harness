@@ -133,11 +133,29 @@ claude -p --model opus --effort high
 
 Later inits render those commands from `adapters.claude-code.models.orchestrator`.
 
-`dev-harness status` shows every installed configured orchestrator model and
-shared records once. `status --platform cursor`, `status --platform codex`, or
-`status --platform claude-code` narrows model display; `check --platform cursor`,
-`check --platform codex`, or `check --platform claude-code` narrows native
-checks while still validating shared configuration and records. These commands never migrate configuration. Active platform identity comes from
+`dev-harness status` and `dev-harness check` detect the agent runtime from its
+native environment marker and scope to it: Claude Code sets
+`CLAUDE_CODE_CHILD_SESSION=1` (Claude Code 2.1.172 or later; not IDE extensions),
+Cursor agents set a non-empty `CURSOR_AGENT`, and Codex sets a non-empty
+`CODEX_THREAD_ID` (undocumented). `CLAUDECODE` is not used. With one detected,
+installed platform, status shows only its configured orchestrator and plain check
+validates only its native artifacts plus shared configuration and records. A
+marker for a platform that is not installed prints "<Platform> is not installed
+here (installed: …); run init --platform <id>"; several markers print "Multiple
+agent runtimes detected (…); rerun with --platform ID". Both show no orchestrator
+line, check only shared configuration and records, and exit 0. Without a marker
+(human terminals) every installed orchestrator model is shown, plus "Platform not
+detected; showing all installed. Agents: rerun with --platform ID" when several
+are installed; plain check then validates every installed platform. Shared
+records always appear once. `status --platform cursor`, `status --platform codex`,
+or `status --platform claude-code` always overrides detection; `check --platform
+cursor`, `check --platform codex`, or `check --platform claude-code` narrows native
+checks while still validating shared configuration and records. Known limits:
+markers leak into processes started from agent shells (tmux servers, `cursor .`,
+scripts), a human typing in an agent-owned terminal is detected as that agent,
+agent-to-agent invocation reports multiple runtimes, and older Claude Code falls
+back to showing all installed platforms. Run plain `check` without markers, or
+with `--platform ID` for each platform, to validate every native artifact. These commands never migrate configuration. Active platform identity comes from
 explicit native startup/invocation context, never the installed set. Configured
 model values describe intent; they do not verify the running native model.
 

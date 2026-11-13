@@ -49,6 +49,7 @@ export default {
   id: 'claude-code', label: 'Claude Code',
   defaults: Object.fromEntries(['orchestrator', ...roles].map(role => [role, { model: 'opus', effort: role === 'owner' ? 'low' : 'high' }])),
   capabilities: { instructionDiscovery: true, delegation: true, roleSettings: true, externalWorktrees: true, backgroundExecution: true },
+  detect(env) { return env.CLAUDE_CODE_CHILD_SESSION === '1'; },
   validateSettings(settings) {
     if (!settings || !['orchestrator', ...roles].every(role => valid(settings.models?.[role]?.model) && valid(settings.models[role].effort))) throw Error('Invalid Claude Code model settings.');
   },

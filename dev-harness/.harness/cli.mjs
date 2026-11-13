@@ -13,8 +13,8 @@ const home = join(root, 'dev-harness');
 const internal = join(home, '.harness');
 const markerStart = '<!-- dev-harness:start -->';
 const markerEnd = '<!-- dev-harness:end -->';
-const entry = `${markerStart}\nAt the start of a session, read \`dev-harness/.harness/skills/dev-harness/SKILL.md\`.\nRun \`node dev-harness/.harness/cli.mjs status\` and present its data using the skill's Session summary template, not raw output.\nFollow the skill before planning or changing this project. Never add a co-author line to any commit.\n${markerEnd}`;
-const sourceEntry = `${markerStart}\nFor every source-repository ARC, validate its full baseSha as an ancestor commit and its regular committed CLI/skill blobs. Read the baseline skill with \`git show BASE_SHA:dev-harness/.harness/skills/dev-harness/SKILL.md\` before following live instructions. Independently extract the CLI from that same SHA into an OS temporary directory verified outside the repo; verify its bytes against Git. Only invoke that absolute baseline CLI path from the ARC checkout, including \`node ABSOLUTE_BASELINE_CLI pinned skill\` and \`node ABSOLUTE_BASELINE_CLI pinned <command>\` when the baseline supports pinning. Never invoke the live candidate CLI's pinned dispatcher for governance. If the baseline predates pinned support, manually verify companion files and run the extracted baseline CLI as described in the source skill, after reading the baseline skill. Fail closed; no live fallback or pinned init. Outside a source ARC, read \`dev-harness/.harness/skills/dev-harness/SKILL.md\` and run \`node dev-harness/.harness/cli.mjs status\`. Present status using the skill's Session summary template. Never add a co-author line to any commit.\n${markerEnd}`;
+const entry = `${markerStart}\nAt the start of a session, read \`dev-harness/.harness/skills/dev-harness/SKILL.md\`.\nRun \`node dev-harness/.harness/cli.mjs status\` and present its data using the skill's Session summary template, not raw output.\nStatus shows only your detected platform; if it reports several platforms or an undetected or uninstalled platform, rerun with \`--platform ID\` for your own platform or ask the user. Present only your platform.\nFollow the skill before planning or changing this project. Never add a co-author line to any commit.\n${markerEnd}`;
+const sourceEntry = `${markerStart}\nFor every source-repository ARC, validate its full baseSha as an ancestor commit and its regular committed CLI/skill blobs. Read the baseline skill with \`git show BASE_SHA:dev-harness/.harness/skills/dev-harness/SKILL.md\` before following live instructions. Independently extract the CLI from that same SHA into an OS temporary directory verified outside the repo; verify its bytes against Git. Only invoke that absolute baseline CLI path from the ARC checkout, including \`node ABSOLUTE_BASELINE_CLI pinned skill\` and \`node ABSOLUTE_BASELINE_CLI pinned <command>\` when the baseline supports pinning. Never invoke the live candidate CLI's pinned dispatcher for governance. If the baseline predates pinned support, manually verify companion files and run the extracted baseline CLI as described in the source skill, after reading the baseline skill. Fail closed; no live fallback or pinned init. Outside a source ARC, read \`dev-harness/.harness/skills/dev-harness/SKILL.md\` and run \`node dev-harness/.harness/cli.mjs status\`, which shows only your detected platform; if it reports several platforms or an undetected or uninstalled platform, rerun with \`--platform ID\` for your own platform or ask the user, and present only your platform. Present status using the skill's Session summary template. Never add a co-author line to any commit.\n${markerEnd}`;
 const pinnedRuntimeVersion = 1;
 const gates = ['RESEARCH', 'IMPLEMENT', 'REVIEW', 'USER CONFIRM', 'MERGED', 'DEFERRED', 'CANCELLED', 'SPLIT'];
 const roles = ['planner', 'reviewer', 'owner'];
@@ -57,9 +57,16 @@ function selectors(args, multiple = false, targetAllowed = false) {
   }
   return { ids: [...new Set(ids)], target };
 }
-function selected(settings, ids) {
-  for (const id of ids) if (!settings.installedPlatforms.includes(id)) throw Error(`Platform is not installed: ${id}`);
-  return ids.length ? ids : settings.installedPlatforms;
+const hintNotice = 'Platform not detected; showing all installed. Agents: rerun with --platform ID';
+function scope(settings, ids, env = process.env) {
+  const installed = settings.installedPlatforms;
+  for (const id of ids) if (!installed.includes(id)) throw Error(`Platform is not installed: ${id}`);
+  if (ids.length) return { ids, notice: '' };
+  const found = integrations.detected(env);
+  if (found.length > 1) return { ids: [], notice: `Multiple agent runtimes detected (${found.map(id => integrations.lookup(id).label).join(', ')}); rerun with --platform ID` };
+  if (found.length === 1 && installed.includes(found[0])) return { ids: found, notice: '' };
+  if (found.length === 1) return { ids: [], notice: `${integrations.lookup(found[0]).label} is not installed here (installed: ${installed.join(', ') || 'none'}); run init --platform ${found[0]}` };
+  return { ids: installed, notice: installed.length > 1 ? hintNotice : '' };
 }
 
 function exists(path) {
@@ -277,12 +284,13 @@ function status(ids = []) {
   const settings = config();
   const user = identity();
   const active = records().filter(record => !['complete', 'cancelled', 'MERGED', 'DEFERRED', 'CANCELLED', 'SPLIT'].includes(record.status || record.gate));
-  const platforms = selected(settings, ids);
+  const { ids: platforms, notice } = scope(settings, ids);
   console.log(`Dev Harness · ${user.name} · ${git(['branch', '--show-current']) || 'detached/unborn'}`);
   for (const id of platforms) {
     const model = settings.adapters[id].models.orchestrator;
     console.log(`${platforms.length === 1 ? '' : `${integrations.lookup(id).label} · `}Orchestrator: ${model.model}${model.effort ? ` · ${model.effort}` : ''} (configured)`);
   }
+  if (notice) console.log(notice);
   if (!active.length) console.log('No active arcs or workstreams. Describe what you want to build.');
   for (const record of active.sort((a, b) => Number(b.owner.id === user.id) - Number(a.owner.id === user.id))) {
     console.log(`${record.owner.id === user.id ? 'Yours' : record.owner.name} · ${record.id} · ${record.title} · ${record.gate || record.status}\nNext: ${record.next}`);
@@ -590,10 +598,11 @@ try {
     else if (command === 'status') status(selectors(args).ids);
     else if (command === 'check') {
       const settings = config();
-      const ids = selected(settings, selectors(args).ids);
+      const { ids, notice } = scope(settings, selectors(args).ids);
       const shared = records();
       integrations.checkLinks(root, artifactPlan(root, { ...settings, installedPlatforms: ids }));
       for (const id of ids) integrations.lookup(id).checkArtifacts({ targetRoot: root, sourceRoot: source, settings: settings.adapters[id], id });
+      if (notice && notice !== hintNotice) console.log(notice);
       console.log(`Valid: ${shared.length} records. Structural validation only.`);
     }
     else if (command === 'new') create(args[0], args[0] === 'workstream' ? args[1] : undefined, args.slice(args[0] === 'workstream' ? 2 : 1).join(' '));

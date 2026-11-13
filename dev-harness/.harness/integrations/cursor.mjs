@@ -6,6 +6,7 @@ export default {
   id: 'cursor', label: 'Cursor',
   defaults: Object.fromEntries(['orchestrator', ...roles].map(role => [role, { model: 'grok-4.7[effort=high]' }])),
   capabilities: { instructionDiscovery: true, delegation: true, roleSettings: true, externalWorktrees: true, backgroundExecution: true },
+  detect(env) { return typeof env.CURSOR_AGENT === 'string' && !(env.CURSOR_AGENT === ''); },
   validateSettings(settings) {
     if (!settings || !['orchestrator', ...roles].every(role => valid(settings.models?.[role]?.model) && settings.models[role].effort === undefined)) throw Error('Invalid Cursor model settings.');
   },
