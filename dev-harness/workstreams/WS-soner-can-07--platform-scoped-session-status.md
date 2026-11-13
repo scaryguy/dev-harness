@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-11-13T09:36:20.436Z",
-  "updated": "2026-11-13T09:40:56.000Z",
-  "next": "Owner implements revision 1 in the WS worktree; then independent code review.",
+  "updated": "2026-11-13T11:08:40.000Z",
+  "next": "User tests in ~/Desktop/delete/testdev and confirms revision 1; then merge into the arc.",
   "arc": "2026-11-12-soner-can--self-hosted-shipped-defaults",
   "sequence": 7,
-  "gate": "IMPLEMENT",
+  "gate": "USER CONFIRM",
   "dependencies": [
     "WS-soner-can-06--shipped-default-config-separation"
   ],
@@ -44,7 +44,7 @@
     "evidence": "update it then!? (reply to WS-07 decisions 1-4 request)"
   },
   "researchState": "approved",
-  "implementationState": "in-progress",
+  "implementationState": "reviewed",
   "researchReview": {
     "revision": 1,
     "outcome": "PASS-with-notes",
@@ -57,6 +57,22 @@
         "date": "2026-11-13"
       }
     ]
+  },
+  "implementationEvidence": {
+    "revision": 1,
+    "reportedBy": "opus[effort=low]",
+    "date": "2026-11-13T10:52:49.000Z",
+    "startingRevision": "beb3a3b",
+    "summary": "Owner-reported: npm test 65/65 inside Claude Code and 65/65 via env -i; frozen paths + AGENTS.md diff-clean vs e7aabbc; manual marker matrix matches decisions 1-7. Owner narrowed WS-06 test 49 (fresh install vs e7aabbc baseline) to exclude AGENTS.md and SKILL.md content, asserting them against live entry/skill instead. Session interrupted once by an auth error; resumed. Not yet independently verified."
+  },
+  "codeReview": {
+    "revision": 1,
+    "outcome": "PASS-with-notes",
+    "reviewer": "opus[effort=high]",
+    "date": "2026-11-13T11:05:35.000Z",
+    "worktree": "/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-07--platform-scoped-session-status (beb3a3b + unstaged)",
+    "notes": "SKILL.md:131-133 wording could let an agent present all platforms when nothing is detected; fix requested before USER CONFIRM. WS branch one records-only commit behind arc tip.",
+    "verified": "Reviewer ran: full npm test via env -i 65/65 (0 skipped); restricted-syntax validator on all integration modules; scope() matrix in a disposable repo; simulated merge on arc tip 2deba5b with baseline pinned skill/status/check identical with no marker, Claude Code marker, and both markers; frozen paths + AGENTS.md diff-clean; narrowed test 49 judged sound."
   }
 }
 ---
@@ -136,12 +152,14 @@ Open: none.
 
 ## Gate
 
-Current: `IMPLEMENT`. Next action: owner implements revision 1; then independent code review.
+Current: `USER CONFIRM`. Next action: user tests and confirms revision 1; then merge into the arc.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
 | RESEARCH | 2026-11-13 | 2026-11-13 | PASS-with-notes |
-| IMPLEMENT | 2026-11-13 | — | — |
+| IMPLEMENT | 2026-11-13 | 2026-11-13 | ready-for-review |
+| REVIEW | 2026-11-13 | 2026-11-13 | PASS-with-notes |
+| USER CONFIRM | 2026-11-13 | — | — |
 
 ## Verification
 
@@ -155,6 +173,8 @@ Disposable repo with `init --platform cursor --platform claude-code`: status/che
 WS merge: baseline `pinned skill`, `pinned status`, `pinned check` on the arc; `npm pack` contents.
 Manual user check: plain `status` and `env | grep -E 'CURSOR|CODEX|CLAUDE'` in a Cursor agent chat, Cursor's human terminal,
 cursor-agent, and codex (confirm CODEX_THREAD_ID survives `shell_environment_policy`; otherwise Codex falls to the decision 3 hint).
+
+User test install: `~/Desktop/delete/testdev` refreshed from an `npm pack` of the WS-07 worktree (includes WS-06); config preserved; AGENTS.md block and skill updated. Orchestrator observed there: Claude Code shell → only Claude Code orchestrator; `CURSOR_AGENT=1` → only Cursor; no markers → both plus hint.
 
 ## User confirm checklist
 
@@ -181,3 +201,7 @@ cursor-agent, and codex (confirm CODEX_THREAD_ID survives `shell_environment_pol
 - 2026-11-13T09:36:20.000Z · Orchestrator · Revision 1 contract recorded from plan r2; WS RESEARCH review next; branches after WS-06 merges.
 - 2026-11-13T09:40:17.000Z · Orchestrator · Decisions 5–7 (A–C) added to the contract; WS RESEARCH re-review requested.
 - 2026-11-13T09:40:56.000Z · Orchestrator · RESEARCH exited (user direction + review PASS); IMPLEMENT entered; WS branch/worktree created from the arc tip.
+- 2026-11-13T10:52:49.000Z · Owner (opus, low) · Implementation reported ready-for-review from beb3a3b (owner-reported 65/65 twice). Gate → REVIEW.
+- 2026-11-13T11:05:35.000Z · Reviewer (opus, high) · Code review r1 PASS-with-notes; SKILL.md wording fix requested.
+- 2026-11-13T11:08:40.000Z · Owner (opus, low) · SKILL.md 131-135 reworded per review note; 17 targeted tests pass.
+- 2026-11-13T11:08:40.000Z · Orchestrator · Verified the wording diff and git diff --check; refreshed ~/Desktop/delete/testdev with the WS-07 build. Gate → USER CONFIRM.

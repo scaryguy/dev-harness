@@ -9,8 +9,8 @@
   },
   "revision": 2,
   "created": "2026-11-13T04:43:49.390Z",
-  "updated": "2026-11-13T09:55:46.000Z",
-  "next": "WS-07 IMPLEMENT; arc smoke test after WS-06 merge running.",
+  "updated": "2026-11-13T11:08:40.000Z",
+  "next": "WS-07 USER CONFIRM (testing in ~/Desktop/delete/testdev).",
   "status": "in-progress",
   "branch": "arc/2026-11-12-soner-can--self-hosted-shipped-defaults",
   "integrationBranch": "main",
@@ -98,7 +98,7 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 | WS | Gate | Depends on | WS branch | Merge SHA |
 |----|------|------------|-----------|-----------|
 | [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md) | MERGED | — | `ws/WS-soner-can-06--shipped-default-config-separation` | `d332a9f886edd80c9294e9c5a4e8fb673d179039` |
-| [WS-07](../workstreams/WS-soner-can-07--platform-scoped-session-status.md) | IMPLEMENT | WS-06 MERGED | `ws/WS-soner-can-07--platform-scoped-session-status` | — |
+| [WS-07](../workstreams/WS-soner-can-07--platform-scoped-session-status.md) | USER CONFIRM | WS-06 MERGED | `ws/WS-soner-can-07--platform-scoped-session-status` | — |
 
 ## Integration checklist
 
@@ -133,3 +133,5 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 - 2026-11-13T09:40:17.000Z · Orchestrator · WS-06 merged into arc as d332a9f; frozen paths + AGENTS.md identical to e7aabbc; baseline pinned skill/status/check pass; npm pack OK; full npm test running.
 - 2026-11-13T09:40:56.000Z · Orchestrator · WS-07 RESEARCH review PASS-with-notes; WS-07 entered IMPLEMENT.
 - 2026-11-13T09:55:46.000Z · Orchestrator · Arc smoke after WS-06 merge: full npm test on a clean clone at d332a9f — 58/58 pass, 0 fail, 0 skipped.
+- 2026-11-13T10:52:49.000Z · Orchestrator · WS-07 entered REVIEW.
+- 2026-11-13T11:08:40.000Z · Orchestrator · WS-07 code review PASS-with-notes, note addressed; WS-07 in USER CONFIRM.
