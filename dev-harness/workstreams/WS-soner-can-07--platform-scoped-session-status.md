@@ -9,11 +9,11 @@
   },
   "revision": 1,
   "created": "2026-11-13T09:36:20.436Z",
-  "updated": "2026-11-13T11:08:40.000Z",
-  "next": "User tests in ~/Desktop/delete/testdev and confirms revision 1; then merge into the arc.",
+  "updated": "2026-11-13T11:22:07.000Z",
+  "next": "Merged into the arc; arc smoke test result pending.",
   "arc": "2026-11-12-soner-can--self-hosted-shipped-defaults",
   "sequence": 7,
-  "gate": "USER CONFIRM",
+  "gate": "MERGED",
   "dependencies": [
     "WS-soner-can-06--shipped-default-config-separation"
   ],
@@ -73,7 +73,22 @@
     "worktree": "/Users/scaryguy/Projects/dev-harness-worktrees/WS-soner-can-07--platform-scoped-session-status (beb3a3b + unstaged)",
     "notes": "SKILL.md:131-133 wording could let an agent present all platforms when nothing is detected; fix requested before USER CONFIRM. WS branch one records-only commit behind arc tip.",
     "verified": "Reviewer ran: full npm test via env -i 65/65 (0 skipped); restricted-syntax validator on all integration modules; scope() matrix in a disposable repo; simulated merge on arc tip 2deba5b with baseline pinned skill/status/check identical with no marker, Claude Code marker, and both markers; frozen paths + AGENTS.md diff-clean; narrowed test 49 judged sound."
-  }
+  },
+  "userConfirm": {
+    "revision": 1,
+    "actor": "User",
+    "date": "2026-11-13T11:22:07.000Z",
+    "scope": "Merge WS-07 revision 1 into the arc only",
+    "evidence": "yeah seems to have worked (after testing in ~/Desktop/delete/testdev)"
+  },
+  "merge": {
+    "wsCommit": "30f9ca3196e020cdb453b0b15300de53cec9e836",
+    "arcMerge": "523a2860592e227f968551ffa4026acdabeb899b"
+  },
+  "knownLimitations": [
+    "Cursor (CURSOR_AGENT) and Codex (CODEX_THREAD_ID) markers not observed in a real session; CODEX_THREAD_ID undocumented. If absent, those sessions fall back to the all-installed view with the hint.",
+    "Claude Code < 2.1.172 does not set CLAUDE_CODE_CHILD_SESSION (falls back to the hint)."
+  ]
 }
 ---
 
@@ -152,14 +167,15 @@ Open: none.
 
 ## Gate
 
-Current: `USER CONFIRM`. Next action: user tests and confirms revision 1; then merge into the arc.
+Current: `MERGED` (into the arc). Next action: none; arc smoke result recorded in the arc.
 
 | Gate | Entered | Exited | Outcome |
 |------|---------|--------|---------|
 | RESEARCH | 2026-11-13 | 2026-11-13 | PASS-with-notes |
 | IMPLEMENT | 2026-11-13 | 2026-11-13 | ready-for-review |
 | REVIEW | 2026-11-13 | 2026-11-13 | PASS-with-notes |
-| USER CONFIRM | 2026-11-13 | — | — |
+| USER CONFIRM | 2026-11-13 | 2026-11-13 | User confirmed |
+| MERGED | 2026-11-13 | — | merge 523a286 |
 
 ## Verification
 
@@ -195,6 +211,8 @@ User test install: `~/Desktop/delete/testdev` refreshed from an `npm pack` of th
 
 - 2026-11-13T09:40:56.000Z · Reviewer (opus, high) · WS RESEARCH review r1 PASS-with-notes.
 
+- 2026-11-13T11:22:07.000Z · User · USER CONFIRM after testing in ~/Desktop/delete/testdev: "yeah seems to have worked". Approves merging WS-07 revision 1 into the arc only. Cursor/Codex real-session marker observation not reported.
+
 ## Progress ledger
 
 - 2026-11-13T09:36:20.436Z · Soner Can · Created.
@@ -205,3 +223,4 @@ User test install: `~/Desktop/delete/testdev` refreshed from an `npm pack` of th
 - 2026-11-13T11:05:35.000Z · Reviewer (opus, high) · Code review r1 PASS-with-notes; SKILL.md wording fix requested.
 - 2026-11-13T11:08:40.000Z · Owner (opus, low) · SKILL.md 131-135 reworded per review note; 17 targeted tests pass.
 - 2026-11-13T11:08:40.000Z · Orchestrator · Verified the wording diff and git diff --check; refreshed ~/Desktop/delete/testdev with the WS-07 build. Gate → USER CONFIRM.
+- 2026-11-13T11:22:07.000Z · Orchestrator · WS commit 30f9ca3; merged into arc as 523a286 (--no-ff). Frozen paths + AGENTS.md identical to e7aabbc; baseline pinned skill/status/check pass; npm pack 18 files. Full npm test (in-session and env -i) running on a clean clone.

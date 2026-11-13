@@ -9,8 +9,8 @@
   },
   "revision": 2,
   "created": "2026-11-13T04:43:49.390Z",
-  "updated": "2026-11-13T11:08:40.000Z",
-  "next": "WS-07 USER CONFIRM (testing in ~/Desktop/delete/testdev).",
+  "updated": "2026-11-13T11:22:07.000Z",
+  "next": "Arc smoke test after WS-07 merge; then integration checklist and user approval to integrate into main.",
   "status": "in-progress",
   "branch": "arc/2026-11-12-soner-can--self-hosted-shipped-defaults",
   "integrationBranch": "main",
@@ -98,11 +98,11 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 | WS | Gate | Depends on | WS branch | Merge SHA |
 |----|------|------------|-----------|-----------|
 | [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md) | MERGED | — | `ws/WS-soner-can-06--shipped-default-config-separation` | `d332a9f886edd80c9294e9c5a4e8fb673d179039` |
-| [WS-07](../workstreams/WS-soner-can-07--platform-scoped-session-status.md) | USER CONFIRM | WS-06 MERGED | `ws/WS-soner-can-07--platform-scoped-session-status` | — |
+| [WS-07](../workstreams/WS-soner-can-07--platform-scoped-session-status.md) | MERGED | WS-06 MERGED | `ws/WS-soner-can-07--platform-scoped-session-status` | `523a2860592e227f968551ffa4026acdabeb899b` |
 
 ## Integration checklist
 
-- [ ] Workstreams completed or explicitly deferred.
+- [x] Workstreams completed or explicitly deferred.
 - [ ] Arc smoke tests after each WS merge and final integration checks passed (npm test; baseline `pinned skill`,
   `pinned status`, `pinned check`; frozen paths identical to baseSha; `npm pack` contents).
 - [ ] User approved integration of the reviewed revision.
@@ -135,3 +135,4 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 - 2026-11-13T09:55:46.000Z · Orchestrator · Arc smoke after WS-06 merge: full npm test on a clean clone at d332a9f — 58/58 pass, 0 fail, 0 skipped.
 - 2026-11-13T10:52:49.000Z · Orchestrator · WS-07 entered REVIEW.
 - 2026-11-13T11:08:40.000Z · Orchestrator · WS-07 code review PASS-with-notes, note addressed; WS-07 in USER CONFIRM.
+- 2026-11-13T11:22:07.000Z · User/Orchestrator · WS-07 confirmed ("yeah seems to have worked") and merged into arc as 523a286; baseline pinned checks pass; full npm test running.
