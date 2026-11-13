@@ -7,14 +7,40 @@ research → implementation → review → user confirmation → merged.
 
 ## Install
 
-Requires Node.js 20+. Run inside your project's Git repository:
+Requires Node.js 20+. Run inside your project's Git repository, then start a
+new agent session and ask it to start Dev Harness.
+
+**Cursor** (the default):
 
 ```sh
 npx github:scaryguy/dev-harness init
 ```
 
 Select **Grok 4.7 · High** in Cursor's model picker. Start a new chat:
-“Start dev harness. Let's build …”
+“Start dev harness. Use --platform cursor. Let's build …”
+
+**Codex CLI** (0.162.1+):
+
+```sh
+npx github:scaryguy/dev-harness init --platform codex
+codex --model gpt-6.1-sol --config model_reasoning_effort="high"
+```
+
+Say “Start dev harness. Use --platform codex.”
+
+**Claude Code** (2.1.44+):
+
+```sh
+npx github:scaryguy/dev-harness init --platform claude-code
+claude --model opus --effort high
+```
+
+Say “Start dev harness. Use --platform claude-code.”
+
+Init prints the launch guidance for your configured models. Install several
+platforms side by side by repeating `--platform` (it is additive and idempotent).
+Each agent session shows only its own platform; a human terminal shows every
+installed platform plus a hint.
 
 The agent shows your Git identity and current work, learns the repository,
 and proposes a reviewed plan. You approve implementation and integration.
@@ -25,7 +51,8 @@ Say “resume my work” to continue in another session.
 Only `arcs/` and `workstreams/` are visible inside `dev-harness/`.
 Internals and repository knowledge live in `dev-harness/.harness/`.
 Worktree checkouts stay outside the repository, in `../<repo-name>-worktrees/<ws-id>/`.
-`AGENTS.md` and Cursor discovery links are entry points.
+Entry points are `AGENTS.md` plus each installed platform's discovery files: Cursor links under `.cursor/`, `CLAUDE.md` and
+`.claude/` for Claude Code, and `.agents/skills` and `.codex/agents` for Codex.
 Edit `dev-harness/.harness/config.json` or ask the agent to configure it.
 Rerun init to refresh built-in instructions; configuration, knowledge, and records are preserved.
 
