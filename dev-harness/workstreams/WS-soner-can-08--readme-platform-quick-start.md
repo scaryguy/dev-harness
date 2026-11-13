@@ -56,7 +56,7 @@
 
 ## Checkout
 
-WS branch: `ws/WS-soner-can-08--readme-platform-quick-start` from `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` @ ARCTIP.
+WS branch: `ws/WS-soner-can-08--readme-platform-quick-start` from `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` @ `ac06b2d`.
 Worktree: `../dev-harness-worktrees/WS-soner-can-08--readme-platform-quick-start/`.
 
 ## Scope and approach
