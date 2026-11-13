@@ -9,9 +9,9 @@
   },
   "revision": 4,
   "created": "2026-11-13T04:43:49.390Z",
-  "updated": "2026-11-13T12:08:27.000Z",
-  "next": "Integrate into main and push (user-approved).",
-  "status": "in-progress",
+  "updated": "2026-11-13T12:08:43.000Z",
+  "next": "Integrated into main. Post-integration Claude Code self-install awaits separate user approval.",
+  "status": "complete",
   "branch": "arc/2026-11-12-soner-can--self-hosted-shipped-defaults",
   "integrationBranch": "main",
   "baseSha": "e7aabbcbbf7993dc4c5b9b98c9ce0396831da675",
@@ -34,7 +34,8 @@
         "date": "2026-11-12"
       }
     ]
-  }
+  },
+  "integrationSha": "1fdcf49dc8ad32d246ac2e96e1e62bcfbc26043c"
 }
 ---
 
@@ -99,7 +100,7 @@ Open: none.
 ## Branch and rollup
 
 Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
-`e7aabbcbbf7993dc4c5b9b98c9ce0396831da675`. Integration branch: `main`. Final merge SHA: —.
+`e7aabbcbbf7993dc4c5b9b98c9ce0396831da675`. Integration branch: `main`. Final merge SHA: `1fdcf49dc8ad32d246ac2e96e1e62bcfbc26043c` (main).
 
 | WS | Gate | Depends on | WS branch | Merge SHA |
 |----|------|------------|-----------|-----------|
@@ -153,3 +154,4 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 - 2026-11-13T11:50:34.000Z · Orchestrator · WS-09 RESEARCH review PASS-with-notes; IMPLEMENT.
 - 2026-11-13T11:51:26.000Z · Orchestrator · WS-09 code review PASS; merged into arc as f297137. All ARC workstreams merged.
 - 2026-11-13T12:08:27.000Z · Orchestrator · Arc smoke at 523a286 (after WS-07) env -i: 65/65. Final arc smoke at 7eb7e7a (WS-09 is README-only): npm test 65/65 inside Claude Code and 65/65 via env -i, 0 skipped; npm pack 18 files with defaults/config.json, without config.json; frozen paths + AGENTS.md identical to e7aabbc; baseline pinned skill/status/check pass.
+- 2026-11-13T12:08:43.000Z · Orchestrator · Integrated into main as 1fdcf49 (--no-ff; tree identical to arc tip d656fd4) under user approval "once passed, merge all and push main". Pushed to origin/main.
