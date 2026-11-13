@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "platform": "cursor",
+  "models": {
+    "orchestrator": "grok-4.7[effort=high]",
+    "subagents": "grok-4.7[effort=high]"
+  },
+  "git": {
+    "integrationBranch": "main",
+    "requireExplicitWriteApproval": true
+  },
+  "checks": []
+}

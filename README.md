@@ -29,6 +29,21 @@ Worktree checkouts stay outside the repository, in `../<repo-name>-worktrees/<ws
 Edit `dev-harness/.harness/config.json` or ask the agent to configure it.
 Rerun init to refresh built-in instructions; configuration, knowledge, and records are preserved.
 
+A fresh install copies the packaged default, `dev-harness/.harness/defaults/config.json`
+(Cursor-only, version 1), to `dev-harness/.harness/config.json` byte for byte;
+`--platform ID` starts from that default instead. Init refreshes `defaults/` like
+`templates/`, and refuses before any write if the package's defaults are missing, a
+symlink, or invalid; refresh an installed CLI with `npx @scaryguy/dev-harness init`.
+Governance commands (`status`, `check`, `new`, `pinned`) never read `defaults/`.
+
+This package source repository installs Dev Harness on itself. Its own
+`dev-harness/.harness/config.json` is its install configuration only: it is
+never read as a default and is not packaged. Self-install (`node
+dev-harness/.harness/cli.mjs init`, run after integration) refuses before any
+write if it would change bytes of a shipped package path (package.json `files`);
+it may write only the repo's `config.json`, `AGENTS.md`, and native
+discovery files such as `CLAUDE.md` and `.claude/`.
+
 ## Remove
 
 Delete `dev-harness/`, its marked block in `AGENTS.md`, and its four links

@@ -51,7 +51,7 @@ export function safeParents(root, path, includeLeaf = false) {
 }
 export function planArtifacts(targetRoot, sourceRoot, config) {
   const result = { files: [], links: [], nativeFiles: [] };
-  const occupied = ['dev-harness/.harness/config.json', 'dev-harness/.harness/cli.mjs', 'dev-harness/.harness/integrations', 'dev-harness/.harness/templates', 'dev-harness/.harness/skills', 'dev-harness/.harness/knowledge', 'dev-harness/.harness/state', 'dev-harness/.harness/local', 'dev-harness/.harness/cache', 'dev-harness/.harness/.gitignore', 'dev-harness/.harness/cli.test.mjs', 'dev-harness/arcs', 'dev-harness/workstreams', 'AGENTS.md'];
+  const occupied = ['dev-harness/.harness/config.json', 'dev-harness/.harness/defaults', 'dev-harness/.harness/cli.mjs', 'dev-harness/.harness/integrations', 'dev-harness/.harness/templates', 'dev-harness/.harness/skills', 'dev-harness/.harness/knowledge', 'dev-harness/.harness/state', 'dev-harness/.harness/local', 'dev-harness/.harness/cache', 'dev-harness/.harness/.gitignore', 'dev-harness/.harness/cli.test.mjs', 'dev-harness/arcs', 'dev-harness/workstreams', 'AGENTS.md'];
   for (const id of config.installedPlatforms) {
     const plan = lookup(id).planArtifacts({ targetRoot, sourceRoot, settings: config.adapters[id], id });
     for (const file of plan.files) {
