@@ -84,6 +84,35 @@ function isPackageSourceCheckout(target) {
   return required.every(path => tracked.has(path));
 }
 
+// Paths the npm package ships, from the same list as package.json `files`.
+// A source checkout's init must never change their bytes.
+function shippedPaths(target) {
+  const lists = [];
+  for (const read of [() => git(['show', 'HEAD:package.json'], target), () => readFileSync(join(target, 'package.json'), 'utf8')]) {
+    let manifest;
+    try { manifest = JSON.parse(read()); } catch { continue; }
+    if (!Array.isArray(manifest.files) || manifest.files.some(path => typeof path !== 'string' || !path)) throw Error('Invalid package.json files list.');
+    lists.push(...manifest.files);
+  }
+  if (!lists.length) throw Error('Package source checkout lacks a readable package.json files list.');
+  return [...new Set(lists)];
+}
+function isShipped(path, shipped) {
+  return shipped.some(entry => entry.endsWith('/') ? path.startsWith(entry) || `${path}/` === entry : path === entry || path.startsWith(`${entry}/`));
+}
+
+function packagedDefaults() {
+  const path = join(source, 'defaults', 'config.json');
+  const hint = ' Refresh with `npx @scaryguy/dev-harness init` to restore the packaged defaults.';
+  const folder = exists(join(source, 'defaults'));
+  const item = exists(path);
+  if (!folder || folder.isSymbolicLink() || !folder.isDirectory() || !item || item.isSymbolicLink() || !item.isFile()) throw Error(`Missing or unsafe packaged defaults: ${path}.${hint}`);
+  let value;
+  try { value = JSON.parse(readFileSync(path, 'utf8')); integrations.normalize(value); }
+  catch { throw Error(`Invalid packaged defaults: ${path}.${hint}`); }
+  return value;
+}
+
 function init(target, requested = []) {
   const folder = join(target, 'dev-harness');
   const runtime = join(folder, '.harness');
@@ -102,7 +131,8 @@ function init(target, requested = []) {
   }
   const current = existsSync(join(runtime, 'config.json')) ? runtime : existsSync(join(folder, 'config.json')) ? folder : null;
   if (exists(folder) && !current) throw new Error('Existing dev-harness/ is not managed by this scaffold.');
-  const plannedConfig = integrations.planConfig(current ? rawConfig(current) : null, rawConfig(source), requested);
+  const defaults = packagedDefaults();
+  const plannedConfig = integrations.planConfig(current ? rawConfig(current) : null, defaults, requested);
   const settings = integrations.normalize(plannedConfig);
   const plan = artifactPlan(target, settings);
   integrations.safeParents(target, 'dev-harness/.harness', true);
@@ -123,9 +153,10 @@ function init(target, requested = []) {
     if (actual && (actual.isSymbolicLink() || expected.isDirectory() !== actual.isDirectory() || expected.isFile() !== actual.isFile())) throw Error(`Invalid managed path: ${destination}`);
     if (expected.isDirectory()) for (const name of readdirSync(sourcePath)) preflightCopy(join(sourcePath, name), join(destination, name));
   }
-  for (const item of ['config.json', 'cli.mjs', 'templates', 'skills', 'adapters', 'integrations', '.gitignore']) {
+  for (const item of ['defaults', 'cli.mjs', 'templates', 'skills', 'adapters', 'integrations', '.gitignore']) {
     const sourcePath = join(source, item === '.gitignore' ? 'templates/gitignore' : item);
-    for (const destination of new Set([join(current || runtime, item), join(runtime, item)])) {
+    // Legacy layouts never shipped defaults/, so only the runtime destination is managed.
+    for (const destination of new Set([join(item === 'defaults' ? runtime : current || runtime, item), join(runtime, item)])) {
       preflightTree(destination);
       preflightCopy(sourcePath, destination);
     }
@@ -149,11 +180,26 @@ function init(target, requested = []) {
     if (typeof adapter.assertReady === 'function') adapter.assertReady();
   }
   integrations.preflightNatives(target, plan);
+  if (isPackageSourceCheckout(target)) {
+    if (current !== runtime) throw Error('Source checkout self-install requires an existing dev-harness/.harness/config.json; refusing before any write.');
+    const shipped = shippedPaths(target);
+    const writes = [...plan.files, ...plan.nativeFiles];
+    const configBody = `${JSON.stringify(plannedConfig, null, 2)}\n`;
+    if (JSON.stringify(rawConfig(runtime)) !== JSON.stringify(plannedConfig)) writes.push({ path: 'dev-harness/.harness/config.json', content: configBody });
+    for (const file of writes) {
+      if (!isShipped(file.path, shipped)) continue;
+      const item = exists(join(target, file.path));
+      if (!item?.isFile() || !readFileSync(join(target, file.path)).equals(Buffer.from(file.content))) {
+        throw Error(`Refusing to change shipped package file in a source checkout: ${file.path}. Edit the shipped source deliberately instead.`);
+      }
+    }
+  }
   if (!current) {
     mkdirSync(runtime, { recursive: true });
-    for (const item of ['config.json', 'cli.mjs', 'templates', 'skills', 'adapters', 'integrations']) {
+    for (const item of ['defaults', 'cli.mjs', 'templates', 'skills', 'adapters', 'integrations']) {
       cpSync(join(source, item), join(runtime, item), { recursive: true, errorOnExist: true, force: false });
     }
+    cpSync(join(source, 'defaults', 'config.json'), join(runtime, 'config.json'), { errorOnExist: true, force: false });
     cpSync(join(source, 'templates', 'gitignore'), join(runtime, '.gitignore'));
     mkdirSync(join(runtime, 'knowledge'));
     cpSync(join(source, 'templates', 'context.md'), join(runtime, 'knowledge', 'context.md'));
@@ -162,7 +208,7 @@ function init(target, requested = []) {
     for (const item of oldItems) renameSync(join(folder, item), join(runtime, item));
 
   }
-  for (const item of ['cli.mjs', 'templates', 'skills', 'adapters', 'integrations']) {
+  for (const item of ['defaults', 'cli.mjs', 'templates', 'skills', 'adapters', 'integrations']) {
     if (resolve(join(source, item)) !== resolve(join(runtime, item))) {
       cpSync(join(source, item), join(runtime, item), { recursive: true });
     }

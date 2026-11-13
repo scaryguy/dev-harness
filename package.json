@@ -8,7 +8,7 @@
   },
   "files": [
     "dev-harness/.harness/cli.mjs",
-    "dev-harness/.harness/config.json",
+    "dev-harness/.harness/defaults/",
     "dev-harness/.harness/templates/",
     "dev-harness/.harness/skills/",
     "dev-harness/.harness/adapters/",
