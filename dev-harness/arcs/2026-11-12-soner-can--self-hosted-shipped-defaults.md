@@ -7,10 +7,10 @@
     "name": "Soner Can",
     "id": "6a1feac13060"
   },
-  "revision": 2,
+  "revision": 3,
   "created": "2026-11-13T04:43:49.390Z",
-  "updated": "2026-11-13T11:22:07.000Z",
-  "next": "Arc smoke test after WS-07 merge; then integration checklist and user approval to integrate into main.",
+  "updated": "2026-11-13T11:26:07.000Z",
+  "next": "WS-08 RESEARCH review; arc smoke after WS-07 running.",
   "status": "in-progress",
   "branch": "arc/2026-11-12-soner-can--self-hosted-shipped-defaults",
   "integrationBranch": "main",
@@ -62,7 +62,7 @@ the package ships, so this repo can dogfood any platform without changing fresh-
 | Source-checkout init changing shipped files | silently rewrites | fails closed before any write |
 | Repo's own Claude Code install | not possible safely | post-integration step on main |
 
-In scope: [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md), then [WS-07](../workstreams/WS-soner-can-07--platform-scoped-session-status.md) (platform-scoped session status). Out of scope:
+In scope: [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md), then [WS-07](../workstreams/WS-soner-can-07--platform-scoped-session-status.md) (platform-scoped session status), then [WS-08](../workstreams/WS-soner-can-08--readme-platform-quick-start.md) (README platform quick-start). Out of scope:
 changing any platform default models, relocating Cursor agent rendering, changing this ARC's pinned governance, any
 self-install inside the ARC (config.json/templates/adapters are frozen baseline companions).
 
@@ -88,6 +88,8 @@ Locked:
 
 - 2026-11-13T09:40:17.000Z · User ("go"): WS-07 A–C accepted (multiple markers exit 0; check prints notices but not the hint; detection over all registered adapters). WS-06 confirmed for merge into the arc; case-folding gap recorded as a known limitation for a future arc.
 
+- 2026-11-13T11:23:48.000Z · User ("go"): ARC scope change — add docs-only WS-08 "README platform quick-start": per-platform quick-start (Cursor, Codex, Claude Code) in the README Install section, side-by-side installs and per-session platform display, and entry-point line naming CLAUDE.md/.claude, .codex/.agents alongside Cursor links. No code changes. Trigger: user asked whether the Claude Code material had been added to the README's top section.
+
 Open: none.
 
 ## Branch and rollup
@@ -99,10 +101,11 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 |----|------|------------|-----------|-----------|
 | [WS-06](../workstreams/WS-soner-can-06--shipped-default-config-separation.md) | MERGED | — | `ws/WS-soner-can-06--shipped-default-config-separation` | `d332a9f886edd80c9294e9c5a4e8fb673d179039` |
 | [WS-07](../workstreams/WS-soner-can-07--platform-scoped-session-status.md) | MERGED | WS-06 MERGED | `ws/WS-soner-can-07--platform-scoped-session-status` | `523a2860592e227f968551ffa4026acdabeb899b` |
+| [WS-08](../workstreams/WS-soner-can-08--readme-platform-quick-start.md) | RESEARCH | WS-07 MERGED | — | — |
 
 ## Integration checklist
 
-- [x] Workstreams completed or explicitly deferred.
+- [ ] Workstreams completed or explicitly deferred.
 - [ ] Arc smoke tests after each WS merge and final integration checks passed (npm test; baseline `pinned skill`,
   `pinned status`, `pinned check`; frozen paths identical to baseSha; `npm pack` contents).
 - [ ] User approved integration of the reviewed revision.
@@ -136,3 +139,5 @@ Branch: `arc/2026-11-12-soner-can--self-hosted-shipped-defaults` from `main` at
 - 2026-11-13T10:52:49.000Z · Orchestrator · WS-07 entered REVIEW.
 - 2026-11-13T11:08:40.000Z · Orchestrator · WS-07 code review PASS-with-notes, note addressed; WS-07 in USER CONFIRM.
 - 2026-11-13T11:22:07.000Z · User/Orchestrator · WS-07 confirmed ("yeah seems to have worked") and merged into arc as 523a286; baseline pinned checks pass; full npm test running.
+- 2026-11-13T11:23:48.000Z · User · ARC scope change approved: docs-only WS-08 README platform quick-start (ARC revision 3).
+- 2026-11-13T11:26:07.000Z · Reviewer/Orchestrator · WS-08 plan r1 PASS-with-notes; WS-08 created via baseline pinned dispatcher.
